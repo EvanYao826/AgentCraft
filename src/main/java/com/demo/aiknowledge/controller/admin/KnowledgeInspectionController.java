@@ -1,8 +1,7 @@
 package com.demo.aiknowledge.controller.admin;
 
 import com.demo.aiknowledge.common.Result;
-import com.demo.aiknowledge.dto.UnansweredAnalysisRequest;
-import com.demo.aiknowledge.dto.UnansweredAnalysisResponse;
+import com.demo.aiknowledge.dto.*;
 import com.demo.aiknowledge.service.KnowledgeInspectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -48,5 +47,36 @@ public class KnowledgeInspectionController {
         }
         UnansweredAnalysisResponse response = knowledgeInspectionService.analyzeUnansweredQuestions(request);
         return Result.success(response);
+    }
+
+    @GetMapping("/library/analyze")
+    public Result<LibraryInspectionResponse> analyzeLibrary(
+            @RequestParam(required = false) Integer minChunkLength,
+            @RequestParam(required = false) Integer outdatedDays,
+            @RequestParam(required = false) Integer unaccessedDays,
+            @RequestParam(required = false) Double similarityThreshold,
+            @RequestParam(required = false) Boolean enableDuplicateCheck,
+            @RequestParam(required = false) Boolean enableQualityCheck,
+            @RequestParam(required = false) Boolean enableOutdatedCheck,
+            @RequestParam(required = false) Boolean enableAccessCheck) {
+
+        LibraryInspectionRequest request = new LibraryInspectionRequest();
+        request.setMinChunkLength(minChunkLength);
+        request.setOutdatedDays(outdatedDays);
+        request.setUnaccessedDays(unaccessedDays);
+        request.setSimilarityThreshold(similarityThreshold);
+        request.setEnableDuplicateCheck(enableDuplicateCheck);
+        request.setEnableQualityCheck(enableQualityCheck);
+        request.setEnableOutdatedCheck(enableOutdatedCheck);
+        request.setEnableAccessCheck(enableAccessCheck);
+
+        LibraryInspectionResponse response = knowledgeInspectionService.inspectLibrary(request);
+        return Result.success(response);
+    }
+
+    @GetMapping("/library/statistics")
+    public Result<Map<String, Object>> getLibraryStatistics() {
+        Map<String, Object> stats = knowledgeInspectionService.getLibraryInspectionStats();
+        return Result.success(stats);
     }
 }

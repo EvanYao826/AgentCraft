@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from core.parser import DocumentParser
 from core.vector_store import VectorStoreManager
 from core.llm import LLMService
+from core.mysql_client import mysql_client
 import os
 import re
 import logging
@@ -194,6 +195,12 @@ async def parse_document(request: ParseRequest):
 
         logger.info(f"Generated {len(chunks)} chunks. Adding to vector store...")
         vector_store.add_documents(chunks)
+        
+        logger.info(f"Saving chunks to MySQL database...")
+        mysql_client.insert_chunks(request.doc_id, [
+            {"page_content": chunk.page_content, "chunk_index": chunk.metadata.get("chunk_index", i)}
+            for i, chunk in enumerate(chunks)
+        ])
         
         process_time = time.time() - start_time
         logger.info(
