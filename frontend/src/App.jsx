@@ -13,6 +13,7 @@ import Dashboard from './pages/admin/Dashboard';
 import NoticeManagement from './pages/admin/NoticeManagement';
 import AgentRunManagement from './pages/admin/AgentRunManagement';
 import KnowledgeInspection from './pages/admin/KnowledgeInspection';
+import Reports from './pages/admin/Reports';
 
 const Layout = () => {
   const location = useLocation();
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="notices" element={<NoticeManagement />} />
           <Route path="agent-runs" element={<AgentRunManagement />} />
           <Route path="inspection" element={<KnowledgeInspection />} />
+          <Route path="reports" element={<Reports />} />
         </Route>
 
         {/* Default Routes */}

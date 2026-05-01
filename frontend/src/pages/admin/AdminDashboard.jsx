@@ -32,6 +32,7 @@ export default function AdminDashboard() {
     else if (path.includes('/notices')) setActiveMenu('notices');
     else if (path.includes('/agent-runs')) setActiveMenu('agent-runs');
     else if (path.includes('/inspection')) setActiveMenu('inspection');
+    else if (path.includes('/reports')) setActiveMenu('reports');
   }, [navigate, location.pathname]);
 
   const handleLogout = () => {
@@ -47,6 +48,7 @@ export default function AdminDashboard() {
     { id: 'logs', label: '问答日志', icon: '📝', path: '/admin/logs' },
     { id: 'agent-runs', label: 'Agent执行记录', icon: '🔄', path: '/admin/agent-runs' },
     { id: 'inspection', label: '知识巡检', icon: '🔍', path: '/admin/inspection' },
+    { id: 'reports', label: '自动报表', icon: '📈', path: '/admin/reports' },
     { id: 'notices', label: '通知管理', icon: '📢', path: '/admin/notices' },
   ];
 
