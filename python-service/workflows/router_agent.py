@@ -4,6 +4,7 @@ from workflows.knowledge_qa_agent import KnowledgeQAAgent
 from workflows.chitchat_agent import ChitChatAgent
 from workflows.admin_copilot_agent import AdminCopilotAgent
 from workflows.inspection_agent import InspectionAgent
+from workflows.retrieval_agent import RetrievalAgent
 from agent.planner import IntentType
 import logging
 import json
@@ -28,6 +29,7 @@ class RouterAgent:
         self.chitchat_agent = ChitChatAgent()
         self.admin_copilot_agent = AdminCopilotAgent()
         self.inspection_agent = InspectionAgent()
+        self.retrieval_agent = RetrievalAgent()
 
         # 闲聊关键词库（只包含明确的闲聊词汇）
         self.chitchat_keywords = [

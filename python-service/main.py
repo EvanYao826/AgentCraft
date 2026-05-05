@@ -10,6 +10,7 @@ load_dotenv(dotenv_path=env_path)
 
 from api.routes import router
 from api.agent_routes import router as agent_router
+import tools
 
 app = FastAPI(title="AI Knowledge System - Python Service")
 
