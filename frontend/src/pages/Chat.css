@@ -170,8 +170,6 @@
   position: relative;
   border: 1px solid transparent;
   overflow: visible;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   z-index: 1;
 }
 
@@ -202,12 +200,26 @@
   display: none;
 }
 
-.conversation-title {
+.conversation-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 2px;
+}
+
+.conversation-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding-right: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.conversation-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
 /* Menu Button - Visible on hover */
@@ -349,9 +361,7 @@
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
-  position: relative;
   color: var(--text-primary);
-  height: 100vh;
   overflow: hidden;
   min-width: 0;
 }

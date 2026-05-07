@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import '../Chat.css';
+import './AdminChat.css';
 
 const adminApi = axios.create({
   baseURL: '/api/admin-chat',
@@ -161,7 +161,7 @@ export default function AdminChat() {
     const info = TASK_TYPE_INFO[taskType] || TASK_TYPE_INFO.unknown;
     return (
       <span
-        className="task-type-badge"
+        className="admin-task-type-badge"
         style={{ backgroundColor: info.color + '20', color: info.color }}
         title={`任务类型: ${info.label}`}
       >
@@ -363,6 +363,24 @@ export default function AdminChat() {
     }
   };
 
+  const formatDateTime = (dateTimeStr) => {
+    if (!dateTimeStr) return '';
+    const date = new Date(dateTimeStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (days === 0) {
+      return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    } else if (days === 1) {
+      return '昨天';
+    } else if (days < 7) {
+      return `${days}天前`;
+    } else {
+      return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+    }
+  };
+
   const handleFeedback = async (messageId, type) => {
     try {
       await adminChatAPI.submitFeedback(messageId, type);
@@ -396,22 +414,20 @@ export default function AdminChat() {
   };
 
   return (
-    <div className="chat-layout">
-      <div className="chat-sidebar">
-        <div className="sidebar-header">
-          <div className="sidebar-logo" onClick={() => navigate('/admin')}>
-            <h2>⚙️ 管理助手</h2>
-          </div>
-          <button className="new-chat-btn" onClick={handleCreateConversation}>
-            <span className="new-chat-icon">+</span> 开启新对话
+    <div className="admin-chat-container">
+      <div className="admin-chat-sidebar">
+        <div className="admin-chat-header">
+          <h2>⚙️ 管理助手</h2>
+          <button className="admin-new-chat-btn" onClick={handleCreateConversation}>
+            <span>+</span> 开启新对话
           </button>
         </div>
 
-        <div className="conversation-list">
+        <div className="admin-conversation-list">
           {conversations.map(conv => (
             <div
               key={conv.id}
-              className={`conversation-item ${currentConversation?.id === conv.id ? 'active' : ''} ${conv.isPinned ? 'pinned' : ''}`}
+              className={`admin-conversation-item ${currentConversation?.id === conv.id ? 'active' : ''} ${conv.isPinned ? 'pinned' : ''}`}
               onClick={() => setCurrentConversation(conv)}
             >
               {editingId === conv.id ? (
@@ -422,34 +438,39 @@ export default function AdminChat() {
                   onBlur={() => handleRenameSave(conv.id)}
                   onKeyDown={(e) => handleRenameKeyDown(e, conv.id)}
                   autoFocus
-                  className="rename-input"
+                  className="admin-rename-input"
                   onClick={(e) => e.stopPropagation()}
                 />
               ) : (
-                <span className="conversation-title">
-                  {conv.title || '新对话'}
-                </span>
-              )}
-
-              <button
-                className="menu-btn"
-                onClick={(e) => handleMenuClick(conv.id, e)}
-              >
-                •••
-              </button>
-
-              {menuOpenId === conv.id && (
-                <div className="context-menu" ref={menuRef}>
-                  <div className="menu-item" onClick={(e) => handleRenameStart(conv, e)}>
-                    ✏️ 重命名
+                <>
+                  <div className="admin-conversation-info">
+                    <span className="admin-conversation-title">
+                      {conv.title || '新对话'}
+                    </span>
+                    <span className="admin-conversation-time">
+                      {formatDateTime(conv.createTime)}
+                    </span>
                   </div>
-                  <div className="menu-item" onClick={(e) => handlePin(conv, e)}>
-                    {conv.isPinned ? '🚫 取消置顶' : '📌 置顶'}
-                  </div>
-                  <div className="menu-item delete" onClick={(e) => handleDelete(conv.id, e)}>
-                    🗑️ 删除
-                  </div>
-                </div>
+                  <button
+                    className="admin-menu-btn"
+                    onClick={(e) => handleMenuClick(conv.id, e)}
+                  >
+                    •••
+                  </button>
+                  {menuOpenId === conv.id && (
+                    <div className="admin-context-menu" ref={menuRef}>
+                      <div className="admin-menu-item" onClick={(e) => handleRenameStart(conv, e)}>
+                        ✏️ 重命名
+                      </div>
+                      <div className="admin-menu-item" onClick={(e) => handlePin(conv, e)}>
+                        {conv.isPinned ? '🚫 取消置顶' : '📌 置顶'}
+                      </div>
+                      <div className="admin-menu-item delete" onClick={(e) => handleDelete(conv.id, e)}>
+                        🗑️ 删除
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ))}
@@ -463,35 +484,33 @@ export default function AdminChat() {
         </div>
       </div>
 
-      <div className="chat-main">
+      <div className="admin-chat-main">
         {currentConversation ? (
           <>
-            <div className="chat-header">
-              <div className="chat-header-left">
-                <h3>{currentConversation.title || '新对话'}</h3>
-              </div>
+            <div className="admin-chat-header-bar">
+              <h3>{currentConversation.title || '新对话'}</h3>
             </div>
 
-            <div className="messages-container">
+            <div className="admin-messages-container">
               {messages.length === 0 ? (
-                <div className="welcome-screen">
-                  <div className="welcome-avatar">⚙️</div>
+                <div className="admin-welcome-screen">
+                  <div className="admin-welcome-avatar">⚙️</div>
                   <h1>管理助手</h1>
-                  <p className="welcome-hint">我可以帮你进行知识巡检、用户分析、运营统计等管理操作</p>
+                  <p>我可以帮你进行知识巡检、用户分析、运营统计等管理操作</p>
                 </div>
               ) : (
                 messages.map((msg, index) => (
-                  <div key={msg.id || index} className={`message-row ${msg.role}`}>
-                    <div className="message-content-wrapper">
-                      <div className="message-avatar">
+                  <div key={msg.id || index} className={`admin-message-row ${msg.role}`}>
+                    <div className="admin-message-content-wrapper">
+                      <div className="admin-message-avatar">
                         {msg.role === 'user' ? '👤' : '⚙️'}
                       </div>
-                      <div className="message-body">
+                      <div className="admin-message-body">
                         {msg.role === 'assistant' && msg.isStreaming && processingStep ? (
-                          <div className="processing-indicator">
-                            <div className="processing-icon">{getProcessingMessage()?.icon}</div>
-                            <div className="processing-text">{getProcessingMessage()?.text}</div>
-                            <div className="processing-dots">
+                          <div className="admin-processing-indicator">
+                            <div className="admin-processing-icon">{getProcessingMessage()?.icon}</div>
+                            <div className="admin-processing-text">{getProcessingMessage()?.text}</div>
+                            <div className="admin-processing-dots">
                               <span className="dot"></span>
                               <span className="dot"></span>
                               <span className="dot"></span>
@@ -500,7 +519,7 @@ export default function AdminChat() {
                         ) : (
                           <>
                             {msg.role === 'assistant' && msg.taskType && (
-                              <div className="message-task-type">
+                              <div className="admin-message-task-type">
                                 {getTaskTypeBadge(msg.taskType)}
                               </div>
                             )}
@@ -510,16 +529,16 @@ export default function AdminChat() {
                         )}
                       </div>
                       {msg.role === 'assistant' && !msg.isStreaming && !msg.processingStep && (
-                        <div className="message-feedback">
+                        <div className="admin-message-feedback">
                           <button
-                            className={`feedback-btn like ${msg.feedbackType === 'like' ? 'active' : ''}`}
+                            className={`admin-feedback-btn like ${msg.feedbackType === 'like' ? 'active' : ''}`}
                             onClick={() => handleFeedback(msg.id, 'like')}
                             title="点赞"
                           >
                             👍
                           </button>
                           <button
-                            className={`feedback-btn dislike ${msg.feedbackType === 'dislike' ? 'active' : ''}`}
+                            className={`admin-feedback-btn dislike ${msg.feedbackType === 'dislike' ? 'active' : ''}`}
                             onClick={() => handleFeedback(msg.id, 'dislike')}
                             title="点踩"
                           >
@@ -534,9 +553,9 @@ export default function AdminChat() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="input-container">
-              <div className="input-wrapper">
-                <form className="chat-input-area" onSubmit={handleSendMessage}>
+            <div className="admin-input-container">
+              <div className="admin-input-wrapper">
+                <form className="admin-chat-input-area" onSubmit={handleSendMessage}>
                   <textarea
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
@@ -549,18 +568,18 @@ export default function AdminChat() {
                     placeholder="给管理助手发送消息..."
                     rows={1}
                   />
-                  <div className="input-buttons">
+                  <div className="admin-input-buttons">
                     {loading && (
                       <button
                         type="button"
-                        className="stop-btn"
+                        className="admin-stop-btn"
                         onClick={() => setLoading(false)}
                         title="停止生成"
                       >
                         ⏹️
                       </button>
                     )}
-                    <button type="submit" className="send-btn" disabled={!inputMessage.trim()}>
+                    <button type="submit" className="admin-send-btn" disabled={!inputMessage.trim()}>
                       ➤
                     </button>
                   </div>
@@ -569,11 +588,11 @@ export default function AdminChat() {
             </div>
           </>
         ) : (
-          <div className="welcome-screen">
-            <div className="welcome-avatar">⚙️</div>
+          <div className="admin-welcome-screen">
+            <div className="admin-welcome-avatar">⚙️</div>
             <h1>欢迎使用管理助手</h1>
             <p>基于 AI 技术，为您提供智能化的管理操作支持</p>
-            <button className="start-btn" onClick={handleCreateConversation}>
+            <button className="admin-start-btn" onClick={handleCreateConversation}>
               开始新对话
             </button>
           </div>
@@ -581,19 +600,19 @@ export default function AdminChat() {
       </div>
 
       {showDeleteConfirm && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-content">
+            <div className="admin-modal-header">
               <h3>确认删除</h3>
             </div>
-            <div className="modal-body">
+            <div className="admin-modal-body">
               <p>确定删除此对话吗？</p>
             </div>
-            <div className="modal-footer">
-              <button className="modal-btn cancel" onClick={handleDeleteCancel}>
+            <div className="admin-modal-footer">
+              <button className="admin-modal-btn cancel" onClick={handleDeleteCancel}>
                 取消
               </button>
-              <button className="modal-btn confirm" onClick={handleDeleteConfirm}>
+              <button className="admin-modal-btn confirm" onClick={handleDeleteConfirm}>
                 确定
               </button>
             </div>

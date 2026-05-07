@@ -105,6 +105,13 @@ public class AdminChatServiceImpl implements AdminChatService {
         aiMsg.setCreateTime(LocalDateTime.now());
         adminMessageMapper.insert(aiMsg);
 
+        String title = conversation.getTitle();
+        if (title == null || title.isEmpty() || title.startsWith("新对话") || title.startsWith("新建会话")) {
+            String newTitle = content.length() > 30 ? content.substring(0, 30) + "..." : content;
+            conversation.setTitle(newTitle);
+            adminConversationMapper.updateById(conversation);
+        }
+
         return aiMsg;
     }
 
