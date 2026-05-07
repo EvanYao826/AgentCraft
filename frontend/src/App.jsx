@@ -13,6 +13,7 @@ import Dashboard from './pages/admin/Dashboard';
 import AgentRunManagement from './pages/admin/AgentRunManagement';
 import KnowledgeInspection from './pages/admin/KnowledgeInspection';
 import Reports from './pages/admin/Reports';
+import AdminChat from './pages/admin/AdminChat';
 
 const Layout = () => {
   const location = useLocation();
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="agent-runs" element={<AgentRunManagement />} />
           <Route path="inspection" element={<KnowledgeInspection />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="chat" element={<AdminChat />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/chat" replace />} />

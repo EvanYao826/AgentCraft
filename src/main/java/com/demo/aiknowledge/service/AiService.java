@@ -25,4 +25,13 @@ public interface AiService {
      * 删除文档向量索引
      */
     void deleteDoc(Long docId);
+
+    /**
+     * 管理端AI助手问答
+     * @param question 用户问题
+     * @param context 对话上下文
+     * @param adminId 管理员ID
+     * @return AI回答对象
+     */
+    java.util.Map<String, Object> askForAdmin(String question, String context, Long adminId);
 }

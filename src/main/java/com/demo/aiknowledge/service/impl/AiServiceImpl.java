@@ -347,7 +347,7 @@ public class AiServiceImpl implements AiService {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("doc_id", docId);
             // file_path 也是必需的参数，但删除逻辑不需要它，传空串
-            requestBody.put("file_path", ""); 
+            requestBody.put("file_path", "");
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -355,7 +355,7 @@ public class AiServiceImpl implements AiService {
 
             String url = aiServiceUrl + "/delete";
             ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
-            
+
             if (response.getStatusCode().is2xxSuccessful()) {
                 log.info("Document vector index deleted successfully: {}", docId);
             } else {
@@ -364,5 +364,47 @@ public class AiServiceImpl implements AiService {
         } catch (Exception e) {
             log.error("Delete document vector index failed", e);
         }
+    }
+
+    @Override
+    public Map<String, Object> askForAdmin(String question, String context, Long adminId) {
+        log.info("[Admin AI] Admin question: {}, adminId: {}", question, adminId);
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("question", question);
+            requestBody.put("context", context);
+            requestBody.put("is_admin", true);
+            requestBody.put("username", "admin_" + adminId);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            String url = aiServiceUrl + "/ask";
+            log.info(">>> [Admin AI Service] Calling Python service: {}", url);
+
+            ResponseEntity<Map> httpResponse = restTemplate.postForEntity(url, entity, Map.class);
+
+            if (httpResponse.getStatusCode().is2xxSuccessful() && httpResponse.getBody() != null) {
+                Map<String, Object> body = httpResponse.getBody();
+                response.put("answer", body.getOrDefault("answer", "抱歉，服务暂时不可用。"));
+                response.put("task_type", body.getOrDefault("task_type", "admin_copilot"));
+                response.put("sources", body.getOrDefault("sources", null));
+                log.info("[Admin AI] Response received, task_type: {}", response.get("task_type"));
+            } else {
+                response.put("answer", "抱歉，服务暂时不可用，请稍后再试。");
+                response.put("task_type", "admin_copilot");
+                response.put("sources", null);
+            }
+        } catch (Exception e) {
+            log.error("[Admin AI] Failed to call admin agent", e);
+            response.put("answer", "抱歉，服务暂时不可用，请稍后再试。");
+            response.put("task_type", "admin_copilot");
+            response.put("sources", null);
+        }
+
+        return response;
     }
 }

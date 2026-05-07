@@ -28,6 +28,9 @@ export default function AdminLogin() {
       const response = await adminAuthAPI.login(formData.username, formData.password);
       localStorage.setItem('adminToken', response.data.accessToken);
       localStorage.setItem('adminInfo', JSON.stringify(response.data.admin));
+      if (response.data.admin && response.data.admin.id) {
+        localStorage.setItem('adminId', response.data.admin.id);
+      }
       // 使用replace选项，避免登录页面留在历史堆栈中
       navigate('/admin', { replace: true }); // 修正跳转路径
       

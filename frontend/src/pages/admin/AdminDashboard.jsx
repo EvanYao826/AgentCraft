@@ -31,6 +31,7 @@ export default function AdminDashboard() {
     else if (path.includes('/agent-runs')) setActiveMenu('agent-runs');
     else if (path.includes('/inspection')) setActiveMenu('inspection');
     else if (path.includes('/reports')) setActiveMenu('reports');
+    else if (path.includes('/chat')) setActiveMenu('chat');
   }, [navigate, location.pathname]);
 
   const handleLogout = () => {
@@ -40,6 +41,7 @@ export default function AdminDashboard() {
   };
 
   const menuItems = [
+    { id: 'chat', label: '管理助手', icon: '⚙️', path: '/admin/chat' },
     { id: 'dashboard', label: '仪表盘', icon: '📊', path: '/admin/dashboard' },
     { id: 'users', label: '用户管理', icon: '👥', path: '/admin/users' },
     { id: 'knowledge', label: '知识库管理', icon: '📚', path: '/admin/knowledge' },
