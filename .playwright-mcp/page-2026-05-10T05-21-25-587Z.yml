@@ -1,0 +1,41 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]: AI 知识库系统
+    - generic [ref=e7] [cursor=pointer]: 欢迎, rose
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - heading "🤖 AI Knowledge" [level=2] [ref=e13] [cursor=pointer]
+        - button "+ 开启新对话" [active] [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]: +
+          - text: 开启新对话
+      - generic [ref=e16]:
+        - generic [ref=e39] [cursor=pointer]:
+          - generic [ref=e40]: 新对话
+          - button "•••" [ref=e41]
+        - generic [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: 询问山东
+          - button "•••" [ref=e19]
+        - generic [ref=e20] [cursor=pointer]:
+          - generic [ref=e21]: 数据库
+          - button "•••" [ref=e22]
+        - generic [ref=e23] [cursor=pointer]:
+          - generic [ref=e24]: 你是谁
+          - button "•••" [ref=e25]
+        - generic [ref=e26] [cursor=pointer]:
+          - generic [ref=e27]: HTML的定义
+          - button "•••" [ref=e28]
+      - generic "点击退出登录" [ref=e30] [cursor=pointer]:
+        - generic [ref=e31]: 👤
+        - generic [ref=e32]: 退出登录
+    - generic [ref=e33]:
+      - heading "新对话" [level=3] [ref=e42]
+      - generic [ref=e44]:
+        - generic [ref=e45]: 🤖
+        - heading "今天有什么可以帮到你？" [level=1] [ref=e46]
+        - paragraph [ref=e47]: 我可以帮你回答知识问题、进行知识巡检、管理助手等
+      - generic [ref=e50]:
+        - textbox "给 AI 发送消息..." [ref=e51]
+        - generic [ref=e52]:
+          - button "📷" [ref=e53] [cursor=pointer]
+          - button "➤" [disabled] [ref=e54]

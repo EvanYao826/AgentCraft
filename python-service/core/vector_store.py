@@ -31,18 +31,26 @@ class VectorStoreManager:
         # 初始化Reranker
         self._init_reranker()
 
-        # 优先使用阿里云 DashScope Embeddings (text-embedding-v1)
-        api_key = config.DASHSCOPE_API_KEY
-        if api_key:
-            config.logger.info("Using DashScope Embeddings (text-embedding-v1)")
-            self.embeddings = DashScopeEmbeddings(
-                model="text-embedding-v1",
-                dashscope_api_key=api_key
-            )
+        # 根据 EMBEDDING_MODEL 配置选择 Embedding 模型
+        embedding_model = config.EMBEDDING_MODEL.lower()
+
+        if embedding_model == "local":
+            # 使用本地中文 Embedding 模型（如 BAAI/bge-small-zh-v1.5）
+            local_model = config.LOCAL_EMBEDDING_MODEL
+            config.logger.info(f"Using local HuggingFace Embeddings ({local_model})")
+            self.embeddings = HuggingFaceEmbeddings(model_name=local_model)
         else:
-            config.logger.warning("DASHSCOPE_API_KEY not found. Falling back to local HuggingFace Embeddings.")
-            # Fallback to local model
-            self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+            # 默认使用阿里云 DashScope Embeddings (text-embedding-v1)
+            api_key = config.DASHSCOPE_API_KEY
+            if api_key:
+                config.logger.info("Using DashScope Embeddings (text-embedding-v1)")
+                self.embeddings = DashScopeEmbeddings(
+                    model="text-embedding-v1",
+                    dashscope_api_key=api_key
+                )
+            else:
+                config.logger.warning("DASHSCOPE_API_KEY not found. Falling back to local HuggingFace Embeddings.")
+                self.embeddings = HuggingFaceEmbeddings(model_name=config.LOCAL_EMBEDDING_MODEL)
 
         # 根据配置选择向量数据库
         if self.use_milvus:
@@ -113,7 +121,7 @@ class VectorStoreManager:
                 config.logger.info(f"Loaded existing FAISS index from {self.persist_directory}")
             except Exception as e:
                 config.logger.error(f"Error loading existing FAISS index: {e}")
-                config.logger.info("Re-initializing empty FAISS vector store...")
+                config.logger.info("This may be caused by embedding model change (dimension mismatch). Re-initializing empty FAISS vector store...")
                 # Backup old index just in case
                 if os.path.exists(self.persist_directory + "_backup"):
                     shutil.rmtree(self.persist_directory + "_backup")

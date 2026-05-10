@@ -13,7 +13,7 @@ public class RestTemplateConfig {
     public RestTemplate restTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(5000);
-        factory.setReadTimeout(30000); // AI 服务响应较慢，设置较长的超时时间
+        factory.setReadTimeout(180000); // AI 服务响应较慢（向量检索+LLM），设置3分钟超时
         return new RestTemplate(factory);
     }
 

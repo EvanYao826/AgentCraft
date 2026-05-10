@@ -324,39 +324,40 @@ export default function Chat() {
         return;
       }
 
-      setProcessingStep('retrieving');
+      setProcessingStep('generating');
 
-      setTimeout(() => {
-        setProcessingStep('generating');
-      }, 300);
+      const aiMessage = {
+        id: response.data.id || thinkingMessageId,
+        conversationId: currentConversation.id,
+        role: 'assistant',
+        content: response.data.content,
+        sources: response.data.sources,
+        feedbackType: response.data.feedbackType || null,
+        taskType: response.data.taskType || null,
+        createTime: response.data.createTime || new Date().toISOString()
+      };
 
-      setTimeout(() => {
-        const aiMessage = {
-          id: response.data.id || thinkingMessageId,
-          conversationId: currentConversation.id,
-          role: 'assistant',
-          content: response.data.content,
-          sources: response.data.sources,
-          feedbackType: response.data.feedbackType || null,
-          taskType: response.data.taskType || null,
-          createTime: response.data.createTime || new Date().toISOString()
-        };
+      setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? aiMessage : msg));
+      setLoading(false);
+      setProcessingStep(null);
+      setAbortController(null);
 
-        setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? aiMessage : msg));
-        setLoading(false);
-        setProcessingStep(null);
-        setAbortController(null);
-
-        loadConversations();
-      }, 500);
+      loadConversations();
 
     } catch (err) {
-      if (err.name === 'AbortError') {
+      // 检查是否是取消请求
+      const isAborted = err.name === 'AbortError' || 
+                        err.message?.includes('cancel') || 
+                        err.message?.includes('abort') ||
+                        err.code === 'ERR_CANCELED';
+      
+      if (isAborted) {
+        console.log('Request was aborted by user');
         const abortedMessage = {
           id: thinkingMessageId,
           conversationId: currentConversation.id,
           role: 'assistant',
-          content: '已终止回答',
+          content: '已停止回答',
           createTime: new Date().toISOString()
         };
         setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? abortedMessage : msg));
@@ -389,7 +390,7 @@ export default function Chat() {
           const updatedMessages = [...prev];
           updatedMessages[lastAssistantMessageIndex] = {
             ...updatedMessages[lastAssistantMessageIndex],
-            content: '已终止回答',
+            content: '已停止回答',
             isStreaming: false,
             processingStep: null
           };

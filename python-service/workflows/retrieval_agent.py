@@ -3,7 +3,7 @@ from tools.question_rewrite import QuestionRewriteTool
 from tools.knowledge_search import KnowledgeSearchTool
 from tools.rerank import RerankTool
 from tools.citation import CitationIntegrator, CitationTracker
-from core.vector_store import VectorStoreManager
+from core.vector_store import vector_store
 from core.config import config
 import logging
 import json
@@ -56,14 +56,14 @@ class RetrievalAgent:
         self.rerank_tool = RerankTool()
         self.citation_integrator = CitationIntegrator()
         self.citation_tracker = CitationTracker()
-        self.vector_store = VectorStoreManager()
+        self.vector_store = vector_store
 
         self.config = {
             "top_k": 5,
             "initial_k": 10,
             "similarity_threshold": 0.7,
-            "use_rerank": True,
-            "use_rewrite": True,
+            "use_rerank": False,   # 默认关闭重排序，减少开销
+            "use_rewrite": False,  # 默认关闭问题重写，减少LLM调用
             "max_citations": 5
         }
 
@@ -71,8 +71,8 @@ class RetrievalAgent:
         self,
         query: str,
         conversation_context: str = "",
-        use_rewrite: bool = True,
-        use_rerank: bool = True,
+        use_rewrite: bool = False,
+        use_rerank: bool = False,
         top_k: int = 5,
         similarity_threshold: float = 0.7,
         **kwargs
@@ -162,8 +162,8 @@ class RetrievalAgent:
         self,
         query: str,
         conversation_context: str = "",
-        use_rewrite: bool = True,
-        use_rerank: bool = True,
+        use_rewrite: bool = False,
+        use_rerank: bool = False,
         top_k: int = 5,
         similarity_threshold: float = 0.7,
         **kwargs

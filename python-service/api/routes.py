@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from core.parser import DocumentParser
-from core.vector_store import VectorStoreManager
+from core.vector_store import vector_store
 from core.llm import LLMService
 from core.mysql_client import mysql_client
 from workflows import RouterAgent
@@ -149,8 +149,7 @@ def should_return_sources(question: str) -> bool:
 try:
     logger.info("Initializing DocumentParser...")
     parser = DocumentParser()
-    logger.info("Initializing VectorStoreManager...")
-    vector_store = VectorStoreManager()
+    logger.info("Using shared VectorStoreManager singleton...")
     logger.info("Initializing LLMService...")
     llm_service = LLMService()
     logger.info("Services initialized successfully.")
@@ -199,7 +198,11 @@ async def parse_document(request: ParseRequest):
             chunk.metadata["source"] = request.file_path
 
         logger.info(f"Generated {len(chunks)} chunks. Adding to vector store...")
-        vector_store.add_documents(chunks)
+        try:
+            vector_store.add_documents(chunks)
+        except Exception as ve:
+            logger.error(f"Vector store add_documents failed: {type(ve).__name__}: {ve}", exc_info=True)
+            raise ve
         
         logger.info(f"Saving chunks to MySQL database...")
         mysql_client.insert_chunks(request.doc_id, [
@@ -230,7 +233,7 @@ async def parse_document(request: ParseRequest):
         raise
     except Exception as e:
         process_time = time.time() - start_time
-        logger.error(f"Error parsing document: {str(e)}")
+        logger.error(f"Error parsing document: {type(e).__name__}: {str(e)}", exc_info=True)
         logger.info(
             json.dumps({
                 "method": "POST",

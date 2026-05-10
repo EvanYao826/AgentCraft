@@ -60,6 +60,8 @@ export default function AdminChat() {
   const [editTitle, setEditTitle] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConversationId, setDeleteConversationId] = useState(null);
+  const [abortController, setAbortController] = useState(null);
+  const [abortedRequests, setAbortedRequests] = useState(new Set());
   const messagesEndRef = useRef(null);
   const menuRef = useRef(null);
 
@@ -314,52 +316,77 @@ export default function AdminChat() {
       createTime: new Date().toISOString()
     };
 
+    const requestId = Date.now() + Math.random();
+
     setMessages(prev => [...prev, userMessage, thinkingMessage]);
     setInputMessage('');
     setLoading(true);
     setProcessingStep('understanding');
     setCurrentTaskType(null);
 
+    const controller = new AbortController();
+    setAbortController(controller);
+
     try {
       const response = await adminChatAPI.sendMessage(adminId, currentConversation.id, inputMessage);
 
-      setProcessingStep('retrieving');
+      if (abortedRequests.has(requestId)) {
+        console.log('Request was aborted, skipping response processing');
+        return;
+      }
 
-      setTimeout(() => {
-        setProcessingStep('generating');
-      }, 300);
+      setProcessingStep('generating');
 
-      setTimeout(() => {
-        const aiMessage = {
-          id: response.data.data.id || thinkingMessageId,
-          conversationId: currentConversation.id,
-          role: 'assistant',
-          content: response.data.data.content,
-          sources: response.data.data.sources,
-          feedbackType: response.data.data.feedbackType || null,
-          taskType: response.data.data.taskType || null,
-          createTime: response.data.data.createTime || new Date().toISOString()
-        };
-
-        setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? aiMessage : msg));
-        setLoading(false);
-        setProcessingStep(null);
-
-        loadConversations();
-      }, 500);
-
-    } catch (err) {
-      console.error('发送消息失败:', err);
-      const errorMessage = {
-        id: thinkingMessageId,
+      const aiMessage = {
+        id: response.data.data.id || thinkingMessageId,
         conversationId: currentConversation.id,
         role: 'assistant',
-        content: '抱歉，我暂时无法回答这个问题，请稍后再试。',
-        createTime: new Date().toISOString()
+        content: response.data.data.content,
+        sources: response.data.data.sources,
+        feedbackType: response.data.data.feedbackType || null,
+        taskType: response.data.data.taskType || null,
+        createTime: response.data.data.createTime || new Date().toISOString()
       };
-      setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? errorMessage : msg));
+
+      setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? aiMessage : msg));
       setLoading(false);
       setProcessingStep(null);
+      setAbortController(null);
+
+      loadConversations();
+
+    } catch (err) {
+      // 检查是否是取消请求
+      const isAborted = err.name === 'AbortError' || 
+                        err.message?.includes('cancel') || 
+                        err.message?.includes('abort') ||
+                        err.code === 'ERR_CANCELED';
+      
+      if (isAborted) {
+        console.log('Request was aborted by user');
+        const abortedMessage = {
+          id: thinkingMessageId,
+          conversationId: currentConversation.id,
+          role: 'assistant',
+          content: '已停止回答',
+          createTime: new Date().toISOString()
+        };
+        setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? abortedMessage : msg));
+        setAbortedRequests(prev => new Set(prev).add(requestId));
+      } else {
+        console.error('发送消息失败:', err);
+        const errorMessage = {
+          id: thinkingMessageId,
+          conversationId: currentConversation.id,
+          role: 'assistant',
+          content: '抱歉，我暂时无法回答这个问题，请稍后再试。',
+          createTime: new Date().toISOString()
+        };
+        setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? errorMessage : msg));
+      }
+      setLoading(false);
+      setProcessingStep(null);
+      setAbortController(null);
     }
   };
 
@@ -402,6 +429,31 @@ export default function AdminChat() {
     localStorage.removeItem('adminInfo');
     localStorage.removeItem('adminId');
     navigate('/admin/login');
+  };
+
+  const handleStopGeneration = () => {
+    if (abortController) {
+      abortController.abort();
+      setMessages(prev => {
+        const lastAssistantMessageIndex = prev.findLastIndex(
+          msg => msg.role === 'assistant' && (msg.isStreaming || msg.processingStep)
+        );
+        if (lastAssistantMessageIndex !== -1) {
+          const updatedMessages = [...prev];
+          updatedMessages[lastAssistantMessageIndex] = {
+            ...updatedMessages[lastAssistantMessageIndex],
+            content: '已停止回答',
+            isStreaming: false,
+            processingStep: null
+          };
+          return updatedMessages;
+        }
+        return prev;
+      });
+      setLoading(false);
+      setProcessingStep(null);
+      setAbortController(null);
+    }
   };
 
   const getProcessingMessage = () => {
@@ -573,7 +625,7 @@ export default function AdminChat() {
                       <button
                         type="button"
                         className="admin-stop-btn"
-                        onClick={() => setLoading(false)}
+                        onClick={handleStopGeneration}
                         title="停止生成"
                       >
                         ⏹️

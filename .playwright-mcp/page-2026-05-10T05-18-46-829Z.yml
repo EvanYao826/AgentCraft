@@ -1,0 +1,23 @@
+- generic [ref=e22]:
+  - heading "AI 知识系统" [level=1] [ref=e23]
+  - heading "注册" [level=2] [ref=e24]
+  - generic [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]: 手机号
+      - textbox "请输入手机号" [ref=e28]
+    - generic [ref=e29]:
+      - generic [ref=e30]: 验证码
+      - generic [ref=e31]:
+        - textbox "请输入验证码" [ref=e32]
+        - button "获取验证码" [ref=e33] [cursor=pointer]
+    - generic [ref=e34]:
+      - generic [ref=e35]: 用户名
+      - textbox "请输入用户名" [ref=e36]
+    - generic [ref=e37]:
+      - generic [ref=e38]: 密码
+      - textbox "请输入密码" [ref=e39]
+    - button "注册" [ref=e40] [cursor=pointer]
+  - generic [ref=e41]:
+    - text: 已有账号？
+    - link "立即登录" [ref=e42] [cursor=pointer]:
+      - /url: /login

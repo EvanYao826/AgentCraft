@@ -8,6 +8,7 @@ from workflows.retrieval_agent import RetrievalAgent
 from agent.planner import IntentType
 import logging
 import json
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -253,12 +254,15 @@ class RouterAgent:
         """
         lower_text = input_text.lower()
 
-        # 计算各类关键词命中数量
-        chitchat_score = sum(1 for kw in self.chitchat_keywords if kw in lower_text)
-        knowledge_score = sum(1 for kw in self.knowledge_qa_keywords if kw in lower_text)
-        admin_score = sum(1 for kw in self.admin_keywords if kw in lower_text)
-        inspection_score = sum(1 for kw in self.inspection_keywords if kw in lower_text)
-        emotion_score = sum(1 for kw in self.emotion_keywords if kw in lower_text)
+        # 去除中英文标点符号，避免 "你是谁？" 中 "？" 干扰分类
+        clean_text = re.sub(r'[，。！？、；：""''【】《》（）\(\)\[\]\{\}<>\?\!\.\,\;\:\"\'\-\—\…\~\`]', '', lower_text)
+
+        # 计算各类关键词命中数量（使用去除标点后的文本）
+        chitchat_score = sum(1 for kw in self.chitchat_keywords if kw in clean_text)
+        knowledge_score = sum(1 for kw in self.knowledge_qa_keywords if kw in clean_text)
+        admin_score = sum(1 for kw in self.admin_keywords if kw in clean_text)
+        inspection_score = sum(1 for kw in self.inspection_keywords if kw in clean_text)
+        emotion_score = sum(1 for kw in self.emotion_keywords if kw in clean_text)
 
         logger.debug(f"[RouterAgent] Scores - chitchat:{chitchat_score}, knowledge:{knowledge_score}, admin:{admin_score}, inspection:{inspection_score}")
 
@@ -287,7 +291,7 @@ class RouterAgent:
             # 如果文本较短且包含闲聊词汇
             if len(input_text.strip()) < 15:
                 # 包含技术词汇则优先知识问答（技术词汇权重更高）
-                if knowledge_score >= chitchat_score:
+                if knowledge_score > chitchat_score:
                     return TaskType.KNOWLEDGE_QA
                 return TaskType.CHITCHAT
             # 长文本：如果闲聊词和技术词都多，取分值高的
@@ -298,8 +302,8 @@ class RouterAgent:
         # 短文本处理（没有任何关键词命中）
         if len(input_text.strip()) < 10:
             # 检查是否包含疑问词
-            question_words = ["什么", "怎么", "如何", "为什么", "哪个", "哪里", "谁", "多少", "?"]
-            if any(kw in lower_text for kw in question_words):
+            question_words = ["什么", "怎么", "如何", "为什么", "哪个", "哪里", "谁", "多少", "?", "？"]
+            if any(kw in clean_text for kw in question_words):
                 return TaskType.KNOWLEDGE_QA
             # 纯问候
             return TaskType.CHITCHAT

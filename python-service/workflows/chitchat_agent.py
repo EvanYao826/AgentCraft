@@ -124,44 +124,72 @@ class ChitChatAgent:
 
     def _generate_chitchat_response(self, question: str) -> str:
         """
-        生成闲聊回复（基于规则和关键词匹配）
+        生成闲聊回复
 
-        Args:
-            question: 用户问题
-
-        Returns:
-            回复内容
+        简单场景走规则匹配（<1ms），需要理解能力的场景调LLM生成自然回复
         """
         lower_question = question.lower()
 
-        # 问候类
-        if any(kw in lower_question for kw in ["你好", "您好", "hello", "hi", "早上好", "下午好", "晚上好"]):
+        # 问候类 — 简短直接，不需要LLM
+        if any(kw in lower_question for kw in ["你好", "您好", "hello", "hi", "早上好", "下午好", "晚上好", "嗨", "嘿"]):
             return self.chitchat_prompts["greeting"][0]
 
-        # 感谢类
+        # 感谢类 — 简短直接，不需要LLM
         if any(kw in lower_question for kw in ["谢谢", "感谢", "多谢", "thanks", "thank you"]):
             return self.chitchat_prompts["thanks"][0]
 
-        # 身份询问类
-        if any(kw in lower_question for kw in ["你叫什么", "你是谁", "你是什么", "你的名字"]):
+        # 身份询问类 — 简短直接，不需要LLM
+        if any(kw in lower_question for kw in ["你叫什么", "你是谁", "你是什么", "你的名字", "你是机器人", "你是AI"]):
             return self.chitchat_prompts["identity"][0]
 
-        # 天气类
+        # 以下场景需要理解能力，调LLM生成自然回复
+
+        # "你知道X吗" 类 — 用LLM给出有内容的回复，而不是机械重定向
+        if any(kw in lower_question for kw in ["你知道", "你了解", "你认识", "听说过", "你听过"]):
+            return self._llm_chitchat(question)
+
+        # 天气类 — 用LLM给出更自然的回复
         if any(kw in lower_question for kw in ["天气", "下雨", "晴天", "温度"]):
-            return self.chitchat_prompts["weather"][0]
+            return self._llm_chitchat(question)
 
         # 时间类
         if any(kw in lower_question for kw in ["几点", "时间", "日期", "今天是"]):
             return self.chitchat_prompts["time"][0]
 
-        # 笑话类
+        # 笑话类 — 用LLM讲笑话，比预设的更有趣
         if any(kw in lower_question for kw in ["笑话", "讲个笑话", "笑", "搞笑"]):
-            return self.chitchat_prompts["joke"][0]
+            return self._llm_chitchat(question)
 
-        # 日常闲聊类 - 使用LLM生成更自然的回复
+        # 日常闲聊类 — 用LLM自然回复
+        if any(kw in lower_question for kw in ["在干嘛", "在做什么", "忙吗", "累不累", "无聊", "睡不着"]):
+            return self._llm_chitchat(question)
+
+        # 引导类 — 用LLM自然回复
+        if any(kw in lower_question for kw in ["聊聊", "聊天", "陪我", "有空吗", "最近怎么样", "最近好吗"]):
+            return self._llm_chitchat(question)
+
+        # 情感类 — 用LLM给出有共情的回复
+        if any(kw in lower_question for kw in ["开心", "高兴", "难过", "伤心", "郁闷", "烦", "累", "困", "饿"]):
+            return self._llm_chitchat(question)
+
+        # 确认/反问类
+        if any(kw in lower_question for kw in ["可以吗", "行吗", "好吗", "对不对", "是不是", "会不会"]):
+            return self._llm_chitchat(question)
+
+        # 短文本且无明确知识意图，直接用预设回复，不调LLM
+        if len(question.strip()) <= 10 and not any(kw in lower_question for kw in ["什么", "怎么", "如何", "为什么", "解释", "原理"]):
+            return self.chitchat_prompts["default"][0]
+
+        # 其他闲聊 — 调LLM
+        return self._llm_chitchat(question)
+
+    def _llm_chitchat(self, question: str) -> str:
+        """调用LLM生成自然的闲聊回复"""
         try:
-            prompt = f"""你是一个友好的AI助手。用户说："{question}"
-请用友好、自然的方式回复，100字以内。如果用户想了解知识，可以引导他们问具体问题。"""
+            prompt = f"""你是一个友好、健谈的AI助手。请用自然、亲切的方式回复用户，就像朋友之间聊天一样。
+回复要简短有趣，100字以内。不要说"你可以问我知识类问题"这种话。
+
+用户说：{question}"""
 
             response = llm.generate(prompt, temperature=0.7, max_tokens=150)
             return response.strip()

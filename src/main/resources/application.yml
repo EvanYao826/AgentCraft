@@ -11,7 +11,7 @@ spring:
     password: ${DB_PASSWORD:123456} # 通过环境变量配置
   data:
     redis:
-      host: ${REDIS_HOST:192.168.150.104}
+      host: ${REDIS_HOST:192.168.150.106}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:your_strong_password} # 可选，如有密码则通过环境变量配置
       database: 0

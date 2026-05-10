@@ -101,7 +101,10 @@ class LLMService:
         if not context_docs:
             knowledge_context = "（无相关知识库信息）"
         else:
-            knowledge_context = "\n\n".join([doc.page_content for doc in context_docs])
+            knowledge_context = "\n\n".join([
+                doc.page_content if hasattr(doc, 'page_content') else str(doc)
+                for doc in context_docs
+            ])
 
         # 处理对话上下文 - 过滤掉错误信息
         cleaned_context = self.clean_conversation_context(conversation_context)
@@ -187,7 +190,10 @@ class LLMService:
         if not context_docs:
             knowledge_context = "（无相关知识库信息）"
         else:
-            knowledge_context = "\n\n".join([doc.page_content for doc in context_docs])
+            knowledge_context = "\n\n".join([
+                doc.page_content if hasattr(doc, 'page_content') else str(doc)
+                for doc in context_docs
+            ])
 
         # 处理对话上下文 - 过滤掉错误信息
         cleaned_context = self.clean_conversation_context(conversation_context)

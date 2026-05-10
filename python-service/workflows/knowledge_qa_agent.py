@@ -3,6 +3,7 @@ from agent.orchestrator import Orchestrator
 from agent.state import AgentState
 from agent.events import EventBus, event_bus
 from workflows.retrieval_agent import RetrievalAgent
+from core.vector_store import vector_store
 from core.llm import LLMService
 import logging
 import json
@@ -11,133 +12,147 @@ logger = logging.getLogger(__name__)
 
 
 class KnowledgeQAAgent:
-    """知识问答Agent - 专门处理知识库问答的工作流"""
+    """知识问答Agent - 精简RAG链路：直接检索 → LLM生成 → 返回"""
 
     def __init__(self):
         self.orchestrator = Orchestrator()
         self.event_bus = event_bus
         self.retrieval_agent = RetrievalAgent()
+        self.vector_store = vector_store
         self.llm_service = LLMService()
 
     def ask(self, question: str, conversation_id: Optional[str] = None,
             user_id: Optional[str] = None, context: str = "",
             **kwargs) -> Dict[str, Any]:
         """
-        处理知识问答 - 使用RetrievalAgent进行检索
+        处理知识问答 - 精简RAG链路
 
-        Args:
-            question: 用户问题
-            conversation_id: 会话ID
-            user_id: 用户ID
-            context: 对话上下文
-            **kwargs: 其他参数
-
-        Returns:
-            包含answer和sources的字典
+        直接走：向量检索 → LLM生成 → 返回（带引用）
+        去掉 Orchestrator fallback、问题重写、重排序等开销
         """
         logger.info(f"[KnowledgeQAAgent] Processing question: {question[:50]}...")
 
         try:
-            # 使用RetrievalAgent进行检索
-            retrieval_result = self.retrieval_agent.retrieve(
-                question,
-                conversation_context=context,
-                use_rewrite=True,
-                use_rerank=True,
-                top_k=5,
-                similarity_threshold=0.7
+            # 1. 直接向量检索（不经过 RetrievalAgent 的额外工具链）
+            docs = self.vector_store.search(
+                query=question,
+                k=5,
+                similarity_threshold=0.7,
+                use_rerank=False  # 跳过重排序，减少开销
             )
 
-            logger.info(
-                f"[KnowledgeQAAgent] Retrieval completed: "
-                f"original={retrieval_result.original_query[:30]}... "
-                f"rewritten={retrieval_result.rewritten_query[:30]}... "
-                f"docs={len(retrieval_result.reranked_documents)}"
-            )
+            logger.info(f"[KnowledgeQAAgent] Retrieved {len(docs)} documents")
 
-            # 获取检索到的文档内容
-            docs_for_llm = []
-            for doc in retrieval_result.reranked_documents:
-                if isinstance(doc, dict) and 'content' in doc:
-                    docs_for_llm.append(doc['content'])
-                elif hasattr(doc, 'page_content'):
-                    docs_for_llm.append(doc.page_content)
+            # 2. 无文档 → 直接返回
+            if not docs:
+                return {
+                    "answer": "抱歉，知识库中没有找到与您问题相关的内容。",
+                    "sources": [],
+                    "has_sources": False,
+                    "task_type": "knowledge_qa"
+                }
 
-            # 使用LLM生成最终回答
+            # 3. LLM 生成回答
             answer = self.llm_service.get_answer(
                 question=question,
-                context_docs=docs_for_llm,
+                context_docs=docs,
                 conversation_context=context
             )
 
-            # 整合引用
-            citation_result = self.retrieval_agent.integrate_citations(
-                answer=answer,
-                documents=retrieval_result.reranked_documents,
-                scores=retrieval_result.scores,
-                query=question
-            )
+            # 4. 构建引用来源（按 doc_id 去重）
+            seen_doc_ids = set()
+            sources = []
+            for doc in docs:
+                metadata = getattr(doc, 'metadata', {})
+                doc_id = metadata.get("doc_id")
+                if doc_id and doc_id in seen_doc_ids:
+                    continue
+                if doc_id:
+                    seen_doc_ids.add(doc_id)
+                sources.append({
+                    "doc_id": doc_id,
+                    "doc": metadata.get("source", "未知文档"),
+                    "page": metadata.get("page"),
+                    "chunk_index": metadata.get("chunk_index"),
+                    "score": metadata.get("score", 0)
+                })
 
-            # 构建最终响应
             return {
                 "answer": answer,
-                "sources": citation_result.get('sources', []),
-                "has_sources": citation_result.get('has_sources', False),
-                "task_type": "knowledge_qa",
-                "retrieval_info": {
-                    "original_query": retrieval_result.original_query,
-                    "rewritten_query": retrieval_result.rewritten_query,
-                    "doc_count": len(retrieval_result.reranked_documents),
-                    "citation_count": citation_result.get('citation_count', 0)
-                }
+                "sources": sources,
+                "has_sources": len(sources) > 0,
+                "task_type": "knowledge_qa"
             }
 
         except Exception as e:
-            logger.error(f"[KnowledgeQAAgent] Retrieval-based QA failed: {e}", exc_info=True)
-            logger.info("[KnowledgeQAAgent] Falling back to orchestrator...")
-
-            # 回退到原有的Orchestrator方式
-            return self._ask_with_orchestrator(
-                question, conversation_id, user_id, context, **kwargs
-            )
+            logger.error(f"[KnowledgeQAAgent] QA failed: {e}", exc_info=True)
+            return {
+                "answer": "抱歉，处理您的问题时遇到了错误，请稍后再试。",
+                "sources": [],
+                "has_sources": False,
+                "task_type": "knowledge_qa",
+                "error": True
+            }
 
     def ask_stream(self, question: str, conversation_id: Optional[str] = None,
                    user_id: Optional[str] = None, context: str = "",
                    **kwargs) -> Generator[str, None, None]:
         """
-        流式处理知识问答 - 使用RetrievalAgent进行检索
+        流式处理知识问答 - 精简RAG链路
 
-        Args:
-            question: 用户问题
-            conversation_id: 会话ID
-            user_id: 用户ID
-            context: 对话上下文
-            **kwargs: 其他参数
-
-        Yields:
-            JSON格式的事件流
+        直接走：向量检索 → LLM流式生成 → 返回
         """
         logger.info(f"[KnowledgeQAAgent] Stream processing question: {question[:50]}...")
 
         try:
-            # 使用RetrievalAgent进行流式检索
-            yield from self.retrieval_agent.retrieve_stream(
-                question,
-                conversation_context=context,
-                use_rewrite=True,
-                use_rerank=True,
-                top_k=5,
-                similarity_threshold=0.7
+            # 1. 直接向量检索
+            docs = self.vector_store.search(
+                query=question,
+                k=5,
+                similarity_threshold=0.7,
+                use_rerank=False
             )
+
+            logger.info(f"[KnowledgeQAAgent] Retrieved {len(docs)} documents")
+
+            # 2. 构建引用来源（按 doc_id 去重）
+            seen_doc_ids = set()
+            sources = []
+            for doc in docs:
+                metadata = getattr(doc, 'metadata', {})
+                doc_id = metadata.get("doc_id")
+                if doc_id and doc_id in seen_doc_ids:
+                    continue
+                if doc_id:
+                    seen_doc_ids.add(doc_id)
+                sources.append({
+                    "doc_id": doc_id,
+                    "doc": metadata.get("source", "未知文档"),
+                    "page": metadata.get("page"),
+                    "chunk_index": metadata.get("chunk_index"),
+                })
+
+            # 3. 流式 LLM 生成
+            for chunk in self.llm_service.get_answer_stream(
+                question=question,
+                context_docs=docs,
+                conversation_context=context
+            ):
+                yield chunk
+
+            # 4. 发送来源信息
+            yield json.dumps({
+                "type": "sources",
+                "sources": sources,
+                "task_type": "knowledge_qa"
+            })
 
         except Exception as e:
             logger.error(f"[KnowledgeQAAgent] Stream QA failed: {e}", exc_info=True)
-            logger.info("[KnowledgeQAAgent] Falling back to orchestrator stream...")
-
-            # 回退到原有的Orchestrator方式
-            yield from self._ask_stream_with_orchestrator(
-                question, conversation_id, user_id, context, **kwargs
-            )
+            yield json.dumps({
+                "type": "error",
+                "content": "处理问题时遇到错误，请稍后再试。"
+            })
 
     def _ask_with_orchestrator(self, question: str, conversation_id: Optional[str] = None,
                                user_id: Optional[str] = None, context: str = "",

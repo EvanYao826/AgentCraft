@@ -1,6 +1,6 @@
 from typing import Dict, Any
 from tools.base import Tool, ToolSchema, SchemaProperty, ToolMetadata
-from core.vector_store import VectorStoreManager
+from core.vector_store import vector_store
 from core.config import config
 
 
@@ -68,8 +68,8 @@ class KnowledgeSearchTool(Tool):
             metadata=metadata
         )
         
-        # 初始化向量存储管理器
-        self.vector_store = VectorStoreManager()
+        # 使用共享的向量存储管理器单例
+        self.vector_store = vector_store
     
     def execute(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """执行知识库检索"""

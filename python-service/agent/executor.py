@@ -3,7 +3,7 @@ from agent.state import AgentState, AgentStep, StepType, StepStatus
 from agent.planner import Planner, IntentResult, QuestionClassification, RewriteResult, SufficiencyResult
 from tools.registry import tool_registry
 from core.llm import LLMService
-from core.vector_store import VectorStoreManager
+from core.vector_store import vector_store
 import time
 import logging
 import json
@@ -18,7 +18,7 @@ class Executor:
     def __init__(self):
         self.planner = Planner()
         self.llm_service = LLMService()
-        self.vector_store = VectorStoreManager()
+        self.vector_store = vector_store
 
     def execute_step(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
         """执行单个步骤"""

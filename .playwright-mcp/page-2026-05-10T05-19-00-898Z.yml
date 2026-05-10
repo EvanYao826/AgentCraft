@@ -1,0 +1,13 @@
+- generic [ref=e4]:
+  - heading "AI 知识管理系统" [level=1] [ref=e5]
+  - heading "管理员登录" [level=2] [ref=e6]
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]: 用户名
+      - textbox "请输入管理员用户名" [ref=e10]
+    - generic [ref=e11]:
+      - generic [ref=e12]: 密码
+      - textbox "请输入密码" [ref=e13]
+    - button "登录" [ref=e14] [cursor=pointer]
+  - link "返回普通用户登录" [ref=e16] [cursor=pointer]:
+    - /url: /login

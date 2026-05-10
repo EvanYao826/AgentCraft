@@ -14,6 +14,10 @@ class ConfigManager:
         """加载配置项"""
         # AI Embeddings
         self.DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
+        # Embedding模型选择: "dashscope" 使用云端API, "local" 使用本地中文模型
+        self.EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "dashscope")
+        # 本地Embedding模型名称（仅当EMBEDDING_MODEL=local时生效）
+        self.LOCAL_EMBEDDING_MODEL = os.getenv("LOCAL_EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
         
         # Milvus Configuration
         self.MILVUS_HOST = os.getenv("MILVUS_HOST", "localhost")
@@ -76,6 +80,8 @@ class ConfigManager:
             "USE_MILVUS": self.USE_MILVUS,
             "VECTOR_STORE_PERSIST_DIR": self.VECTOR_STORE_PERSIST_DIR,
             "VECTOR_STORE_COLLECTION_NAME": self.VECTOR_STORE_COLLECTION_NAME,
+            "EMBEDDING_MODEL": self.EMBEDDING_MODEL,
+            "LOCAL_EMBEDDING_MODEL": self.LOCAL_EMBEDDING_MODEL,
             "RERANKER_TYPE": self.RERANKER_TYPE,
             "CHUNK_STRATEGY": self.CHUNK_STRATEGY,
             "CHUNK_SIZE": self.CHUNK_SIZE,

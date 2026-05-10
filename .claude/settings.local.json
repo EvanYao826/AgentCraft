@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_network_request",
+      "mcp__playwright__browser_console_messages",
+      "Bash(curl *)",
+      "Bash(python -c ' *)",
+      "Bash(pip list *)",
+      "Bash(python -c \"import torch; print\\('torch:', torch.__version__\\)\")",
+      "Bash(python -c \"from langchain_community.embeddings import HuggingFaceEmbeddings; e = HuggingFaceEmbeddings\\(model_name='sentence-transformers/all-MiniLM-L6-v2'\\); print\\('OK, dim:', len\\(e.embed_query\\('test'\\)\\)\\)\")",
+      "Bash(E:/IDEA/idea/IDEAProjects/ai-knowledge-system/python-service/.venv/Scripts/python.exe *)",
+      "Bash(python test_chitchat.py)"
+    ]
+  }
+}
