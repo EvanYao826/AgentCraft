@@ -11,8 +11,9 @@ import pytesseract
 # 使用统一配置管理模块
 from core.config import config
 
-# 配置Tesseract OCR路径
-pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_PATH
+# 配置Tesseract OCR路径（空值时由 parser.py 自动检测）
+if config.TESSERACT_PATH:
+    pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_PATH
 
 class LLMService:
     def __init__(self):

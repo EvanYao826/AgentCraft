@@ -40,8 +40,8 @@ class ConfigManager:
         self.CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
         self.MIN_CHUNK_SIZE = int(os.getenv("MIN_CHUNK_SIZE", "100"))
         
-        # Tesseract OCR Configuration
-        self.TESSERACT_PATH = os.getenv("TESSERACT_PATH", r'E:/Tesseract-OCR/tesseract.exe')
+        # Tesseract OCR Configuration（默认为空，由 parser.py 自动检测）
+        self.TESSERACT_PATH = os.getenv("TESSERACT_PATH", "")
         
         # Temporary Files Configuration
         self.TEMP_DIR = os.getenv("TEMP_DIR", "./temp")
@@ -103,8 +103,8 @@ class ConfigManager:
         if not self.DASHSCOPE_API_KEY:
             self.logger.warning("DASHSCOPE_API_KEY not set, will use local embeddings")
         
-        # 验证Tesseract路径
-        if not os.path.exists(self.TESSERACT_PATH):
+        # 验证Tesseract路径（空值表示由 parser.py 自动检测）
+        if self.TESSERACT_PATH and not os.path.exists(self.TESSERACT_PATH):
             self.logger.warning(f"Tesseract not found at {self.TESSERACT_PATH}, will try other locations")
         
         return is_valid
