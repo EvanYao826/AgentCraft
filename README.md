@@ -1,576 +1,416 @@
-# 🚀 AI Knowledge System - 企业级智能知识库问答平台
+<div align="center">
 
+# 🚀 AgentCraft — 多 Agent 协作智能知识库系统
+
+**基于 Spring Boot + FastAPI + React 构建的 RAG 知识库问答平台，内置五层可编排 Agent 架构与多 Agent 协作机制，适合作为 Agent 后端开发学习项目与简历展示项目。**
+
+[![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.3-green?logo=springboot)](https://spring.io/projects/spring-boot)
+[![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python)](https://python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18.2-61dafb?logo=react)](https://reactjs.org/)
+[![Milvus](https://img.shields.io/badge/Milvus-2.4+-00B4D8)](https://milvus.io/)
+[![Redis](https://img.shields.io/badge/Redis-7.0-DC382D?logo=redis)](https://redis.io/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql)](https://mysql.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![SpringBoot](https://img.shields.io/badge/SpringBoot-3.2.3-green.svg)](https://spring.io/projects/spring-boot)
-[![React](https://img.shields.io/badge/React-18.2-61dafb.svg)](https://reactjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688.svg)](https://fastapi.tiangolo.com/)
-[![Milvus](https://img.shields.io/badge/Milvus-2.4-00B4D8.svg)](https://milvus.io/)
-[![Redis](https://img.shields.io/badge/Redis-7.0-DC382D.svg)](https://redis.io/)
+
+</div>
+
+---
 
 ## 📖 项目简介
 
-这是一个"**前后端 + AI 微服务**"的**全栈 RAG** 知识库系统。管理端支持上传多格式文档，Python 服务负责文档解析、内容切分、向量化处理并存储到向量库（支持 FAISS 和 **Milvus**）；用户端通过对话方式与系统交互，AI 服务根据问题**检索相关文档**并生成答案，同时展示参考来源并支持**在线预览/下载**。系统采用 JWT 认证保障安全性，支持会话管理和历史记录，提供完整的知识库管理和智能问答功能。
+AgentCraft 是一个"**前端 + Java 后端 + Python AI 微服务**"的**全栈 RAG 知识库系统**。核心亮点是 **五层可编排 Agent 架构**——Interface、Orchestrator、Tool、Memory、Evaluation 五层解耦，支持意图识别→问题改写→检索→充分性判断→答案生成的完整工作流。系统内置 Router Agent / Retrieval Agent / Ops Agent 多 Agent 协作，通过统一 Tool Registry 管理 AI 能力，支持 runId/traceId 全链路追踪。
 
-### ✨ 核心价值
-- **智能文档处理**：支持多格式文档（PDF/Word/TXT等）自动解析、向量化存储
-- **精准语义检索**：基于 Milvus 向量数据库的语义相似度搜索
-- **实时流式对话**：SSE 流式输出提供流畅的 AI 对话体验
-- **上下文感知**：智能对话历史管理和多轮上下文理解
-- **高性能架构**：Redis + Caffeine 多级缓存系统，毫秒级响应
-- **生产级部署**：完整的监控、安全和数据一致性保障
-- **多 Agent 协作**：Router Agent、Retrieval Agent、Ops Agent 智能协作
-
----
-
-## 项目状态
-
-**当前状态**：✅ **核心功能已完整实现**，项目已具备生产级能力
-
-### 🎯 Phase 4 多 Agent 协作（已完成）
-- ✅ **P4-1 Router Agent**：任务路由智能分发，支持闲聊/知识问答/管理助手/知识巡检
-- ✅ **P4-2 Retrieval Agent**：完整检索流程，包含 Query Rewrite、召回策略、Rerank、引用整合
-- ✅ **P4-3 Ops Agent**：运营分析与后台建议，支持知识缺口分析、问答趋势、用户活跃度
-
-### 核心功能
-- ✅ **用户认证系统**：JWT + 手机验证码登录
-- ✅ **知识库管理**：文档上传/解析/向量化
-- ✅ **智能问答**：RAG检索增强生成 + 来源追溯
-- ✅ **对话管理**：完整的对话历史管理
-- ✅ **性能优化**：多级缓存 + 异步处理
-- ✅ **向量数据库**：Milvus生产级部署
-- ✅ **SSE流式输出**：完整框架，需配置AI API密钥测试
-
-### Agent 系统架构（已完成）
-- 🤖 **Router Agent**：智能任务类型识别和路由分发
-- 🔍 **Retrieval Agent**：完整检索流程（Query Rewrite → Recall → Rerank → Citation）
-- 📊 **Ops Agent**：运营分析与后台建议
-- 🧰 **工具链**：knowledge_search、question_rewrite、rerank、conversation_memory 等
-- 📋 **执行审计**：工具执行记录和运行历史查询
-
----
-
-## 项目亮点 (Highlights)
-- **RAG 链路打通**：上传 → 解析 → 向量索引 → 检索 → 生成 → 来源追溯
-- **多 Agent 协作**：Router + Retrieval + Ops Agent 智能协作架构
-- **云存储集成**：文档上传至七牛云 Kodo，AI 服务支持从 URL 拉取并解析
-- **端到端可观测**：管理端仪表盘展示用户数、文档数、提问趋势、AI 命中率、热点与未命中问题
-- **来源体验优化**：来源只展示真实文件名（去除 UUID 前缀），并按后缀展示不同图标
-- **数据一致性治理**：删除文档时同步清理数据库记录、云端对象和向量索引，避免"幽灵文档"
-- **智能检索优化**：Query Rewrite + Rerank 提升检索质量
+**一句话总结**：不只是一个 RAG 问答系统，更是一个 Agent 架构学习项目。
 
 ---
 
 ## 🏗️ 系统架构
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        React 前端 (User/Admin)                       │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │  • 用户端：智能对话界面、文档预览、历史管理                   │  │
-│  │  • 管理端：仪表盘、知识库管理、缓存监控、系统配置             │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-└───────────────────────────────┬─────────────────────────────────────┘
-                                │ HTTP/SSE (JWT 认证)
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Spring Boot 后端 (API Gateway)                    │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │  • 用户认证：JWT + 手机验证码                                │  │
-│  │  • 业务逻辑：对话管理、文档管理、缓存服务                    │  │
-│  │  • 多级缓存：Caffeine(本地) + Redis(分布式)                  │  │
-│  │  • Agent 任务记录：agent_run、agent_step、tool_call          │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-└───────────────────────────────┬─────────────────────────────────────┘
-                                │ REST API / HTTP
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                   Python AI 服务 (Agent Orchestration)               │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │  • Agent 层：Router、Retrieval、Ops Agent                    │  │
-│  │  • Orchestrator：任务规划、执行调度、状态管理                │  │
-│  │  • 工具层：knowledge_search、question_rewrite、rerank       │  │
-│  │  • 向量检索：Milvus 向量数据库 (生产级)                      │  │
-│  │  • AI 模型：通义千问 + DashScope Embeddings                  │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-└───────────────────────────────┬─────────────────────────────────────┘
-                                │ 七牛云 Kodo
-                                ▼
-                        ┌───────────────┐
-                        │  文档存储     │
-                        │  (对象存储)   │
-                        └───────────────┘
-```
-
-### 🔄 Agent 数据流
-```
-用户提问
-   ↓
-Router Agent 判断任务类型
-   ↓
-├─ CHITCHAT → ChitChatAgent
-├─ KNOWLEDGE_QA → KnowledgeQAAgent → RetrievalAgent
-├─ ADMIN_COPILOT → AdminCopilotAgent → OpsAgent
-└─ INSPECTION → InspectionAgent
-```
-
-### 🔍 Retrieval Agent 流程
-```
-Query Rewrite → Knowledge Search → Rerank → Citation Integration → Answer Generation
+┌─────────────────────────────────────────────────────────────────┐
+│                    React 前端 (用户端 + 管理端)                   │
+│  用户端：智能对话、文档预览、历史管理                              │
+│  管理端：仪表盘、知识库管理、Agent 执行记录、知识巡检、自动报表     │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ HTTP / SSE (JWT 认证)
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   Spring Boot 后端 (API Gateway)                  │
+│  用户认证 · 会话管理 · 多级缓存(Caffeine+Redis) · 文档管理         │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ REST API
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                Python AI 服务 (五层 Agent 架构)                    │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Interface 层 — FastAPI 路由，HTTP/SSE 接口               │  │
+│  └────────────────────────┬──────────────────────────────────┘  │
+│  ┌────────────────────────▼──────────────────────────────────┐  │
+│  │  Orchestrator 层 — Planner 规划 + Executor 执行 + State   │  │
+│  └────────────────────────┬──────────────────────────────────┘  │
+│  ┌────────────────────────▼──────────────────────────────────┐  │
+│  │  Tool 层 — ToolRegistry 统一注册/调用/超时/重试            │  │
+│  │  knowledge_search · question_rewrite · rerank · citation   │  │
+│  │  memory_read · memory_write · ocr_extract · doc_summary    │  │
+│  └────────────────────────┬──────────────────────────────────┘  │
+│  ┌────────────────────────▼──────────────────────────────────┐  │
+│  │  Memory 层 — Redis 短期 + MongoDB 会话 + MySQL 持久化      │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │  Evaluation 层 — 检索充分性判断 + 结果质量评估              │  │
+│  └────────────────────────────────────────────────────────────┘  │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+              ┌─────────────┼─────────────┐
+              ▼             ▼             ▼
+        ┌──────────┐  ┌──────────┐  ┌──────────┐
+        │  MySQL   │  │  Redis   │  │  Milvus  │
+        │ 业务数据  │  │ 缓存/锁  │  │ 向量索引  │
+        └──────────┘  └──────────┘  └──────────┘
 ```
 
 ---
 
-## 🎯 核心功能
+## ✨ 核心亮点
 
-### 👤 用户端功能
-| 功能模块 | 描述 | 状态 |
-|---------|------|------|
-| **用户认证** | 手机验证码注册/登录 + JWT 鉴权 | ✅ 已实现 |
-| **智能问答** | RAG 检索增强生成，返回答案 + 参考来源 | ✅ 已实现 |
-| **流式对话** | SSE 实时流式响应，流畅的 AI 对话体验 | ✅ 框架完整 |
-| **上下文记忆** | 智能对话历史管理，支持多轮上下文理解 | ✅ 已实现 |
-| **文档预览** | 来源文档在线预览/下载（七牛云链接） | ✅ 已实现 |
-| **对话管理** | 对话历史查看、置顶、删除、搜索 | ✅ 已实现 |
+### 亮点一：五层可编排 Agent 架构
 
-### 👨‍💼 管理端功能
+将 AI 服务拆分为 Interface → Orchestrator → Tool → Memory → Evaluation 五层，每层职责单一、可独立扩展。
 
-| 功能模块 | 描述 | 状态 |
-|---------|------|------|
-| **数据仪表盘** | 用户数、文档数、提问趋势、AI 命中率统计 | ✅ 已实现 |
-| **知识库管理** | 文档上传/删除、自动解析向量化、分类管理 | ✅ 已实现 |
-| **缓存监控** | Redis + Caffeine 多级缓存命中率监控 | ✅ 已实现 |
-| **性能分析** | 响应时间统计、热点问题分析、未命中问题追踪 | ✅ 已实现 |
-| **系统配置** | 通知管理、系统参数配置、用户权限管理 | ✅ 已实现 |
-| **知识缺口分析** | 自动分析未命中问题，提示知识缺口 | ✅ P4-3 已实现 |
-| **运营报告** | 完整运营分析报告和后台建议 | ✅ P4-3 已实现 |
+**单 Agent 端到端执行流程：**
 
-### 🤖 Agent 系统功能
+```
+用户提问
+  │
+  ▼
+┌─────────────────┐
+│ 意图识别         │  ← Planner.recognize_intent()
+│ (Intent Recognition) │    判断：知识问答 / 闲聊 / 管理操作
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ 问题改写         │  ← Planner.rewrite_question()
+│ (Query Rewrite)  │    补充上下文、消除歧义
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ 知识检索         │  ← VectorStore.search()
+│ (Knowledge Search) │    Milvus 向量相似度搜索
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐     不充分 → 追问用户
+│ 充分性判断       │  ──────────────────────→
+│ (Sufficiency)    │
+└────────┬────────┘  充分
+         │
+         ▼
+┌─────────────────┐
+│ 答案生成         │  ← LLM.generate()
+│ (Answer Generate) │    带引用来源的结构化回答
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ 记忆写入         │  ← MemoryWriteTool
+│ (Memory Write)   │    保存对话上下文
+└─────────────────┘
+```
 
-| Agent | 功能 | 描述 |
-|-------|------|------|
-| **Router Agent** | 任务路由 | 智能识别任务类型，分发到对应 Agent |
-| **Retrieval Agent** | 检索流程 | Query Rewrite + Recall + Rerank + Citation |
-| **Ops Agent** | 运营分析 | 知识缺口分析、问答趋势、用户活跃度、完整报告 |
-| **KnowledgeQAAgent** | 知识问答 | 基于检索结果生成答案 |
-| **ChitChatAgent** | 闲聊对话 | 处理日常闲聊和问候 |
-| **AdminCopilotAgent** | 管理助手 | 管理端操作和数据查询 |
-| **InspectionAgent** | 知识巡检 | 重复检测、质量检测、过期检测 |
+**关键代码：**
+- `agent/orchestrator.py` — 编排器，创建 state、调用 planner、逐步执行
+- `agent/planner.py` — 规划器，意图识别 + 问题分类 + 充分性判断
+- `agent/executor.py` — 执行器，根据 step_type 分发到具体实现
+- `agent/state.py` — 状态管理，run_id / trace_id / step 追踪
 
-### 🏗️ 系统特性
+---
 
-| 特性 | 描述 | 优势 |
-|------|------|------|
-| **🔍 智能检索** | 基于 Milvus 的语义向量相似度搜索 + Rerank | 精准匹配，支持复杂查询 |
-| **⚡ 高性能缓存** | Redis + Caffeine 多级缓存架构 | 毫秒级响应，高并发支持 |
-| **🧠 上下文感知** | 短期记忆(Redis) + 长期记忆(数据库) | 智能对话，多轮理解 |
-| **🌊 流式输出** | SSE 实时流式响应框架 | 流畅体验，实时反馈 |
-| **🔒 数据一致性** | 文档删除同步清理数据库、云存储、向量索引 | 避免"幽灵文档"，数据一致 |
-| **📊 可观测性** | 完整的监控指标和性能分析 | 系统健康可视，问题快速定位 |
-| **🤝 多 Agent** | Router + Retrieval + Ops Agent 协作 | 智能任务分配，各司其职 |
+### 亮点二：多 Agent 协作机制
+
+Router Agent 负责任务分发，Retrieval Agent 专精检索，Ops Agent 负责运营分析，各 Agent 独立可扩展。
+
+**多 Agent 协作流程：**
+
+```
+用户提问
+  │
+  ▼
+┌─────────────────┐
+│  Router Agent    │  ← router_agent.py
+│  任务类型识别     │    关键词权重 + LLM 分类
+└───┬───┬───┬───┬─┘
+    │   │   │   │
+    ▼   │   │   │  闲聊
+┌──────┐│   │   │
+│ChitChat│  │   │  ← chitchat_agent.py
+│Agent  ││   │    轻量级回复，不走检索
+└──────┘│   │
+        ▼   │  知识问答
+   ┌────────────┐
+   │ Retrieval  │  ← retrieval_agent.py
+   │ Agent      │    Query Rewrite → Recall → Rerank → Citation
+   └────────────┘
+            │
+            ▼  管理助手
+       ┌──────────┐
+       │Ops Agent │  ← ops_agent.py
+       │          │    知识缺口/问答趋势/用户活跃度分析
+       └──────────┘
+```
+
+**Retrieval Agent 内部链路：**
+
+```
+Query Rewrite → Knowledge Search → Rerank → Citation Integration → 答案生成
+     ↑                ↑               ↑            ↑
+  问题改写优化     Milvus 向量检索    语义重排序     引用来源整合
+```
+
+**关键代码：**
+- `workflows/router_agent.py` — 4 种任务路由（闲聊/知识问答/管理助手/巡检）
+- `workflows/retrieval_agent.py` — 完整检索链路，可配置开关
+- `workflows/ops_agent.py` — 运营分析，直接查 MySQL，不走 LLM
+
+---
+
+### 亮点三：统一 Tool Registry 工具体系
+
+将知识检索、OCR、文档摘要、对话记忆等 AI 能力抽象为标准 Tool，定义输入/输出 Schema、超时、重试与权限元数据。
+
+```python
+# tools/base.py — 工具基类
+class Tool(ABC):
+    name: str
+    input_schema: ToolSchema      # 输入参数 Schema
+    output_schema: ToolSchema     # 输出结果 Schema
+    metadata: ToolMetadata        # 超时/重试/权限
+
+    @abstractmethod
+    def execute(self, parameters: Dict) -> Dict:
+        pass
+
+# tools/registry.py — 工具注册器（单例）
+class ToolRegistry:
+    def register_tool(tool: Tool)      # 注册工具
+    def invoke_tool(name, params)       # 调用（带超时+重试）
+    def get_all_tools() -> Dict         # 列出所有工具
+```
+
+**已注册工具列表：**
+
+| 工具名 | 功能 | 超时 | 重试 |
+|--------|------|------|------|
+| knowledge_search | 知识库语义检索 | 30s | 3 |
+| question_rewrite | 问题改写优化 | 30s | 3 |
+| rerank | 语义重排序 | 30s | 3 |
+| citation | 引用来源整合 | 5s | 1 |
+| conversation_memory_read | 对话记忆读取 | 5s | 1 |
+| conversation_memory_write | 对话记忆写入 | 5s | 1 |
+| ocr_extract | OCR 文字提取 | 30s | 3 |
+| doc_summary | 文档摘要生成 | 30s | 3 |
+
+---
+
+### 亮点四：全链路可观测
+
+每个 Agent 运行都有 runId + traceId，支持执行记录查询、步骤追踪、工具调用审计。
+
+```
+run_id: "test-run-001"
+  ├─ step 1: intent_recognition     → ✅ confidence: 0.95
+  ├─ step 2: question_rewrite       → ✅ "什么是数据库" → "请解释数据库的定义、分类和常见应用场景"
+  ├─ step 3: knowledge_search       → ✅ 返回 3 个相关 chunk
+  ├─ step 4: result_evaluation      → ✅ 充分性: sufficient
+  └─ step 5: answer_generation      → ✅ 生成答案 + 2 个引用来源
+```
 
 ---
 
 ## 🛠️ 技术栈
 
-### 🟢 Java 后端
-| 技术组件 | 版本 | 用途 |
-|---------|------|------|
-| **Spring Boot** | 3.2.x | 后端主框架，REST API 开发 |
-| **MyBatis-Plus** | 3.5.x | ORM 框架，数据库操作增强 |
-| **MySQL** | 8.0 | 关系型数据库，业务数据存储 |
-| **Redis** | 7.0 | 分布式缓存，会话和热点数据 |
-| **Caffeine** | 3.x | 本地缓存，毫秒级响应优化 |
-| **Spring Security** | 6.2.x | 安全认证，JWT + 权限控制 |
-| **七牛云 Kodo** | - | 对象存储，文档文件管理 |
-| **Spring @Async** | - | 异步处理，提升系统吞吐量 |
+### 后端
 
-### 🐍 Python AI 服务
-| 技术组件 | 版本 | 用途 |
-|---------|------|------|
-| **FastAPI** | 0.109+ | 高性能 Python Web 框架 |
-| **LangChain** | 0.1.x | AI 应用开发框架，RAG 流程管理 |
-| **Milvus** | 2.4+ | 生产级向量数据库，语义检索 |
-| **通义千问** | qwen-plus | 大语言模型，智能问答生成 |
-| **DashScope** | - | 阿里云 Embeddings 服务 |
-| **PyMuPDF** | - | PDF 文档解析 |
-| **python-docx** | - | Word 文档解析 |
-| **SSE (Server-Sent Events)** | - | 流式输出，实时 AI 响应 |
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Java | 17 | 开发语言 |
+| Spring Boot | 3.2.3 | 后端主框架 |
+| MyBatis-Plus | 3.5.x | ORM 持久层 |
+| MySQL | 8.0 | 关系型数据库 |
+| Redis | 7.0 | 分布式缓存、会话管理 |
+| Caffeine | 3.x | 本地缓存，毫秒级响应 |
+| Spring Security | 6.2.x | JWT 认证 + 权限控制 |
+| Spring WebFlux | - | SSE 流式响应 |
+| 七牛云 Kodo | - | 文档对象存储 |
 
-### ⚛️ 前端
-| 技术组件 | 版本 | 用途 |
-|---------|------|------|
-| **React** | 18.2 | 前端主框架，组件化开发 |
-| **Vite** | 5.x | 构建工具，开发服务器 |
-| **React Router** | 6.x | 路由管理，SPA 导航 |
-| **Axios** | 1.x | HTTP 客户端，API 调用 |
-| **ECharts** | 5.x | 数据可视化，管理端图表 |
-| **Element Plus** | 2.x | UI 组件库，界面组件 |
-| **原生 ReadableStream** | - | SSE 流式数据处理 |
-| **React Context + Hooks** | - | 状态管理，全局状态共享 |
+### AI 服务
 
-### 🗄️ 基础设施
-| 组件 | 用途 | 部署方式 |
-|------|------|----------|
-| **Docker** | 容器化部署 | 可选 |
-| **Nginx** | 反向代理，负载均衡 | 生产环境推荐 |
-| **Prometheus** | 监控指标收集 | 可选 |
-| **Grafana** | 监控数据可视化 | 可选 |
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Python | 3.9+ | AI 服务语言 |
+| FastAPI | 0.110+ | 高性能 Web 框架 |
+| LangChain | 0.1.x | RAG 流程管理 |
+| Milvus | 2.4+ | 向量数据库，语义检索 |
+| 通义千问 | qwen-plus | 大语言模型 |
+| DashScope | - | Embeddings 向量化服务 |
+
+### 前端
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| React | 18.2 | 前端主框架 |
+| Vite | 5.x | 构建工具 |
+| ECharts | 6.x | 数据可视化 |
+| Axios | 1.x | HTTP 客户端 |
+
+---
+
+## 📸 效果展示
+
+### 用户端
+
+| 智能问答（带参考来源） | 闲聊路由（Router Agent 自动识别） |
+|:---:|:---:|
+| ![用户端问答](images/用户端截图1.png) | ![用户闲聊](images/用户闲聊.png) |
+
+### 管理端
+
+| 仪表盘 | Agent 执行记录 |
+|:---:|:---:|
+| ![仪表盘](images/管理端仪表盘.png) | ![Agent执行记录](images/管理端Agent执行记录.png) |
+
+| 知识巡检（Ops Agent） | 自动报表 |
+|:---:|:---:|
+| ![知识巡检](images/管理端知识巡检.png) | ![自动报表](images/管理端自动报表.png) |
 
 ---
 
 ## 🚀 快速启动
 
-### 📋 环境要求
-- **Java**: JDK 17+
-- **Python**: 3.9+
-- **Node.js**: 18+
-- **MySQL**: 8.0+
-- **Redis**: 7.0+
-- **Milvus**: 2.4+ (可选，推荐生产环境)
+### 环境要求
 
-### 🗄️ 步骤 1：数据库准备
+- JDK 17+
+- Python 3.9+
+- Node.js 18+
+- MySQL 8.0+
+- Redis 7.0+
+- Milvus 2.4+（可选，也支持 FAISS 本地模式）
+
+### 1. 数据库准备
+
 ```bash
-# 1. 创建数据库
 mysql -u root -p -e "CREATE DATABASE ai_knowledge_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 2. 执行初始化脚本
 mysql -u root -p ai_knowledge_db < sql/init.sql
-mysql -u root -p ai_knowledge_db < sql/update_admin.sql
 ```
 
-### ☕ 步骤 2：Java 后端启动
+### 2. Java 后端启动
+
 ```bash
-# 1. 配置数据库连接
-# 编辑 src/main/resources/application.yml
-# 修改 MySQL 和 Redis 连接信息
-
-# 2. 配置七牛云（必需）
-# 在 application.yml 中配置：
-# qiniu:
-#   accessKey: your-access-key
-#   secretKey: your-secret-key
-#   bucket: your-bucket-name
-#   domain: your-domain.com
-
-# 3. 启动服务
-# 方式一：IDE 运行 AiKnowledgeSystemApplication.java
-# 方式二：Maven 打包运行
+# 编辑 src/main/resources/application.yml 配置 MySQL / Redis 连接
 mvn clean package
 java -jar target/ai-knowledge-system-*.jar
-
-# 默认端口：8080
+# 默认端口 8080
 ```
 
-### 🐍 步骤 3：Python AI 服务启动
+### 3. Python AI 服务启动
+
 ```bash
-# 1. 进入 Python 服务目录
 cd python-service
-
-# 2. 安装依赖
 pip install -r requirements.txt
-
-# 3. 配置环境变量
-# 复制环境变量模板
-cp .env.example .env
-
-# 编辑 .env 文件，配置以下关键项：
-# MILVUS_HOST=192.168.150.102    # Milvus 服务地址
-# MILVUS_PORT=19530              # Milvus 端口
-# USE_MILVUS=true                # 启用 Milvus（推荐）
-# DASHSCOPE_API_KEY=sk-your-key  # 阿里云 DashScope API 密钥（必需）
-
-# 4. 启动服务
+# 配置 .env（MILVUS_HOST、DASHSCOPE_API_KEY 等）
 python main.py
-
-# 默认端口：8000
-# 访问 http://localhost:8000/docs 查看 API 文档
+# 默认端口 8000
 ```
 
-#### 🔄 Milvus 数据迁移（可选）
-如果从 FAISS 迁移到 Milvus：
-```bash
-# 调用迁移接口
-curl -X POST http://localhost:8000/api/vector-store/migrate
+### 4. 前端启动
 
-# 或使用 FAISS 作为 fallback
-# 在 .env 中设置：USE_MILVUS=false
-```
-
-### ⚛️ 步骤 4：前端启动
 ```bash
-# 1. 进入前端目录
 cd frontend
-
-# 2. 安装依赖
 npm install
-
-# 3. 配置 API 地址（可选）
-# 编辑 .env 文件，修改后端地址：
-# VITE_API_BASE_URL=http://localhost:8080
-
-# 4. 启动开发服务器
 npm run dev
-
-# 默认端口：3000
-# 访问 http://localhost:3000 查看前端
+# 默认端口 3000
 ```
 
-### 👥 默认账号
-- **用户端**：手机验证码注册/登录
-- **管理端**：`http://localhost:3000/admin/login`
-  - 用户名：`admin`
-  - 密码：`admin123`
+### 默认账号
+
+- 用户端：手机验证码注册登录（未配置短信时为模拟模式）
+- 管理端：`admin` / `admin123`
 
 ---
 
-## ⚙️ 配置说明
+## 📝 简历写法参考
 
-### 🔑 必需配置
-| 服务 | 配置项 | 说明 | 获取方式 |
-|------|--------|------|----------|
-| **七牛云 Kodo** | `qiniu.accessKey` | 七牛云 Access Key | 七牛云控制台 |
-| | `qiniu.secretKey` | 七牛云 Secret Key | 七牛云控制台 |
-| | `qiniu.bucket` | 存储空间名称 | 七牛云控制台创建 |
-| | `qiniu.domain` | 绑定域名 | 七牛云域名管理 |
-| **阿里云 DashScope** | `DASHSCOPE_API_KEY` | AI 模型 API 密钥 | 阿里云 DashScope 控制台 |
-| **Milvus** | `MILVUS_HOST` | Milvus 服务地址 | 本地部署或云服务 |
-| | `MILVUS_PORT` | Milvus 服务端口 | 默认 19530 |
+> 以下话术可直接用于简历项目经历描述，面试时围绕每条展开讲解即可。
 
-### 🔧 可选配置
-| 服务 | 配置项 | 说明 | 默认值 |
-|------|--------|------|--------|
-| **阿里云短信** | `aliyun.sms.*` | 短信验证码服务 | 模拟模式 |
-| **Redis** | `spring.redis.*` | Redis 连接配置 | localhost:6379 |
-| **MySQL** | `spring.datasource.*` | 数据库连接配置 | localhost:3306 |
-| **缓存策略** | `cache.*` | 缓存 TTL 和大小 | 见 CacheConfig |
+**1. 负责五层可编排 Agent 架构设计与实现**，将 AI 服务拆分为 Interface、Orchestrator、Tool、Memory、Evaluation 五层，实现意图识别→问题改写→检索→充分性判断→答案生成的完整工作流；通过 StepType 枚举 + Planner 动态规划步骤，支持任务编排与独立扩展，runId/traceId 实现全链路追踪。
 
-### 🚨 安全注意事项
-1. **密钥管理**：所有敏感密钥（七牛云 AK/SK、API 密钥）必须通过环境变量配置
-2. **生产环境**：禁用模拟模式，启用真实的短信和存储服务
-3. **访问控制**：配置防火墙规则，限制数据库和缓存服务的访问
-4. **日志脱敏**：确保日志中不输出敏感信息
+**2. 设计并实现多 Agent 协作机制**，Router Agent 基于关键词权重算法识别任务类型并分发至对应 Agent，Retrieval Agent 专精 Query Rewrite + 多路召回 + Rerank + Citation 全链路检索，Ops Agent 负责知识缺口分析与运营报告生成；各 Agent 独立可扩展，共享状态协同工作。
+
+**3. 构建统一 Tool Registry 工具体系**，将知识检索、OCR、文档摘要、对话记忆等 AI 能力抽象为标准 Tool，定义输入/输出 Schema、超时、重试与权限元数据；通过单例 ToolRegistry 实现工具注册/查找/调用，支持单工具执行与多工具链编排，基于 ThreadPoolExecutor 实现超时控制。
+
+**4. 设计并实现多级缓存架构**，Caffeine 本地缓存 + Redis 分布式缓存两级架构，实现缓存穿透/雪崩防护机制，热点数据毫秒级响应；通过 @Async 异步处理提升系统吞吐量。
+
+**5. 实现 RAG 全链路知识库系统**，支持多格式文档（PDF/Word/TXT）自动解析、向量化存储至 Milvus，用户提问时通过语义检索 + Rerank 重排序精准召回相关文档，生成带引用来源的结构化答案，支持在线预览/下载。
 
 ---
 
-## 🚢 部署架构
+## 🗺️ 迭代路线图
 
-### 🐳 Docker 容器化部署（推荐）
-```yaml
-# docker-compose.yml 示例
-version: '3.8'
-
-services:
-  # MySQL 数据库
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: ai_knowledge_db
-    volumes:
-      - mysql_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
-
-  # Redis 缓存
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-  # Milvus 向量数据库
-  milvus:
-    image: milvusdb/milvus:v2.4.0
-    environment:
-      ETCD_ENDPOINTS: etcd:2379
-      MINIO_ADDRESS: minio:9000
-    ports:
-      - "19530:19530"
-      - "9091:9091"
-
-  # Java 后端服务
-  backend:
-    build: .
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_HOST: mysql
-      REDIS_HOST: redis
-    ports:
-      - "8080:8080"
-    depends_on:
-      - mysql
-      - redis
-      - milvus
-
-  # Python AI 服务
-  ai-service:
-    build: ./python-service
-    environment:
-      MILVUS_HOST: milvus
-      MILVUS_PORT: 19530
-    ports:
-      - "8000:8000"
-    depends_on:
-      - milvus
-
-  # 前端服务
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-
-volumes:
-  mysql_data:
-```
-
-### ☁️ 云原生部署建议
-1. **Kubernetes 部署**：使用 Helm Charts 管理各服务
-2. **服务网格**：Istio 实现流量管理和监控
-3. **CI/CD**：GitHub Actions 或 GitLab CI 自动化部署
-4. **监控告警**：Prometheus + Grafana + AlertManager
-5. **日志收集**：ELK Stack 或 Loki + Grafana
-
-### 📊 性能指标
-| 指标 | 目标值 | 监控方式 |
-|------|--------|----------|
-| **API 响应时间** | < 200ms (P95) | Prometheus + Grafana |
-| **缓存命中率** | > 95% | Redis 监控 |
-| **向量检索延迟** | < 100ms | Milvus 监控 |
-| **系统可用性** | 99.9% | 健康检查端点 |
-| **并发用户数** | 1000+ | 压力测试 |
+| 阶段 | 内容 | 状态 |
+|------|------|------|
+| Phase 1 | RAG 知识库核心链路（上传→解析→向量化→检索→生成） | ✅ 已完成 |
+| Phase 2 | 多级缓存 + 对话上下文 + SSE 流式输出 | ✅ 已完成 |
+| Phase 3 | 五层 Agent 架构 + 全链路追踪 | ✅ 已完成 |
+| Phase 4 | 多 Agent 协作（Router + Retrieval + Ops） | ✅ 已完成 |
+| Phase 5 | Docker Compose 一键部署 | 📋 计划中 |
+| Phase 6 | 接入更多 LLM（OpenAI / Claude / 本地模型） | 📋 计划中 |
+| Phase 7 | Reasoning Agent（归纳推理独立 Agent） | 📋 计划中 |
+| Phase 8 | Memory Agent（记忆压缩 + 主动读写） | 📋 计划中 |
 
 ---
 
-## 已知限制和注意事项
+## 🎓 学完这个项目你能掌握什么
 
-### ✅ 已解决的问题
-1. **向量数据库限制**：已从FAISS迁移到Milvus，支持高效的文档删除和过滤
-2. **缓存性能**：已实现多级缓存系统，大幅提升响应速度
-3. **对话上下文**：已实现完整的上下文记忆系统
-4. **多 Agent 协作**：已实现 Router、Retrieval、Ops Agent 智能协作
-
-### ⚠️ 当前注意事项
-1. **AI API密钥**：需要配置 `DASHSCOPE_API_KEY` 环境变量才能使用AI问答功能
-2. **流式输出测试**：SSE流式输出框架已实现，但需要AI API密钥进行实际测试
-3. **Milvus连接**：确保Milvus服务正常运行，连接地址正确配置在 `.env` 文件中
-4. **缓存一致性**：多级缓存系统需要确保数据一致性，系统已实现缓存穿透/雪崩防护
-
-### 🔧 生产环境建议
-1. **监控系统**：建议添加应用性能监控（APM）和业务日志收集
-2. **API限流**：生产环境建议实现接口限流防止滥用
-3. **密钥管理**：生产环境使用环境变量或密钥管理服务存储敏感信息
-4. **备份策略**：定期备份Milvus向量数据和MySQL数据库
+| 能力 | 对应代码 | 面试考点 |
+|------|---------|---------|
+| RAG 全链路设计 | python-service/core/ + tools/ | 向量检索、Embedding、Rerank |
+| Agent 架构设计 | python-service/agent/ | 编排器、规划器、执行器、状态机 |
+| 多 Agent 协作 | python-service/workflows/ | Router 分发、Agent 间通信 |
+| 工具注册体系 | python-service/tools/registry.py | 插件化设计、Schema 校验、超时重试 |
+| 多级缓存 | src/.../service/impl/CacheService | Caffeine + Redis、穿透/雪崩防护 |
+| SSE 流式输出 | src/.../controller/ChatController | WebFlux Flux、Server-Sent Events |
+| JWT 认证 | src/.../config/SecurityConfig | Token 生成/校验/刷新 |
+| 向量数据库 | python-service/core/vector_store.py | Milvus 部署、索引、检索、删除 |
 
 ---
 
-## 更新日志 (Changelog)
+## ⚠️ 已知问题与改进方向
 
-### v1.2.0 (2026-05-07) - Phase 4 多 Agent 协作完成 ✅
-**重大更新**：
+### 当前存在的问题
 
-**P4-1 Router Agent**
-- ✅ 智能任务类型识别（闲聊/知识问答/管理助手/知识巡检）
-- ✅ 基于关键词权重算法的分类系统
-- ✅ 任务路由分发到对应 Agent
+1. **Reasoning Agent 缺失**：答案生成目前由 KnowledgeQAAgent 直接调用 LLM，没有独立的归纳推理 Agent，复杂问题的推理能力有限。
+2. **Memory Agent 缺失**：记忆管理目前是 memory_read/write 工具的被动调用，没有独立的记忆压缩 Agent，长对话场景下记忆效率会下降。
+3. **四级记忆体系不完整**：短期记忆（Redis）和会话记忆（MongoDB）已实现，但知识分层记忆和用户个性化记忆尚未实现。
+4. **Rerank 默认关闭**：Retrieval Agent 中 `use_rerank` 和 `use_rewrite` 默认为 False，需要手动开启，且依赖 cohere API。
+5. **无 Docker Compose**：目前需要分别启动 Java / Python / 前端三个服务，缺少一键部署方案。
+6. **前端无 TypeScript**：前端使用纯 JavaScript，没有类型检查，对于大型项目可维护性不足。
+7. **短信验证码为模拟模式**：未配置阿里云短信时，验证码直接输出到控制台，不适合生产环境。
+8. **七牛云为必需依赖**：文档上传功能强依赖七牛云 Kodo，本地开发需要配置或改造为本地存储。
 
-**P4-2 Retrieval Agent**
-- ✅ Query Rewrite：问题改写优化
-- ✅ 召回策略：向量库语义检索
-- ✅ Rerank：文档语义重排序
-- ✅ 引用整合：Citation Integration
+### 改进方向
 
-**P4-3 Ops Agent**
-- ✅ 知识缺口分析：自动分析未命中问题
-- ✅ 问答趋势分析：问答统计和趋势展示
-- ✅ 用户活跃度分析：活跃用户统计
-- ✅ 完整运营报告：自动生成后台建议
-
-**技术架构升级**：
-- Agent 系统完整集成
-- Tool Registry 工具注册管理
-- 执行审计和运行历史记录
-- 完善的错误处理和降级机制
+- 补充 Reasoning Agent 和 Memory Agent，完善五层架构
+- 提供 Docker Compose 一键部署方案
+- 接入更多 LLM 提供商（OpenAI / Claude / 本地 Ollama）
+- 前端迁移到 TypeScript + 状态管理库
+- 添加单元测试和 CI/CD 流水线
 
 ---
 
-### v1.1.0 (2026-04-27) - Agent 系统集成
-**重大更新**：
-- ✅ **Agent 智能代理**：实现智能代理系统，支持复杂任务分解和多工具调用
-- ✅ **工具链生态**：实现知识库检索、问题重写、对话记忆等多种工具
-- ✅ **执行审计系统**：完整的工具执行记录和运行历史查询
-- ✅ **Java 端适配**：实现 Agent 调用入口和管理端接口
+## 📄 开源协议
 
-**技术架构升级**：
-- 实现 Tool Registry 工具注册和管理系统
-- 添加 agent_run、agent_step、tool_call 表结构
-- 实现工具执行审计和运行历史查询
-- 为管理端预留工具运行历史查询接口
-
-**API 接口扩展**：
-- `POST /api/agent/run` - 启动 Agent 运行
-- `GET /api/agent/run/{id}` - 获取 Agent 运行详情
-- `GET /api/admin/agent/runs` - 获取 Agent 运行记录列表
-- `GET /api/admin/agent/tool-calls` - 获取工具调用记录列表
-
----
-
-### v1.0.0 (2026-04-03) - 生产级功能完善
-**重大更新**：
-- ✅ **向量数据库迁移**：从FAISS成功迁移到Milvus生产级向量数据库
-- ✅ **多级缓存系统**：实现Redis + Caffeine两级缓存架构，性能大幅提升
-- ✅ **对话上下文记忆**：完整的上下文记忆系统，支持智能对话管理
-- ✅ **SSE流式输出框架**：完整的流式响应框架，支持实时AI输出
-
-**技术架构升级**：
-- 支持Milvus高效向量检索和文档删除
-- 实现缓存穿透/雪崩防护机制
-- 优化异步处理和线程池管理
-- 完善安全认证和权限控制
-
----
-
-## 📁 项目结构
-
-```
-ai-knowledge-system/
-├── src/main/java/com/demo/aiknowledge/    # Java 后端
-│   ├── controller/                        # REST API 控制器
-│   ├── service/                           # 业务服务层
-│   ├── entity/                            # 数据库实体
-│   ├── mapper/                            # MyBatis Mapper
-│   └── dto/                               # 数据传输对象
-├── python-service/                        # Python AI 服务
-│   ├── agent/                             # Agent 核心组件
-│   │   ├── orchestrator.py                # 编排器
-│   │   ├── planner.py                     # 规划器
-│   │   ├── executor.py                    # 执行器
-│   │   └── state.py                       # 状态管理
-│   ├── tools/                             # 工具层
-│   │   ├── knowledge_search.py            # 知识检索工具
-│   │   ├── question_rewrite.py            # 问题改写工具
-│   │   ├── rerank.py                      # 重排序工具
-│   │   └── registry.py                    # 工具注册
-│   ├── workflows/                         # Agent 工作流
-│   │   ├── router_agent.py                # P4-1 Router Agent
-│   │   ├── retrieval_agent.py             # P4-2 Retrieval Agent
-│   │   ├── ops_agent.py                   # P4-3 Ops Agent
-│   │   ├── knowledge_qa_agent.py          # 知识问答 Agent
-│   │   ├── admin_copilot_agent.py         # 管理助手 Agent
-│   │   └── inspection_agent.py            # 知识巡检 Agent
-│   ├── core/                              # 核心模块
-│   ├── api/                               # API 路由
-│   └── main.py                            # 服务入口
-├── frontend/                              # React 前端
-│   ├── src/pages/                         # 页面组件
-│   ├── src/components/                    # 通用组件
-│   └── src/api/                           # API 接口
-├── sql/                                   # 数据库脚本
-└── 优化迭代计划书.md                      # 迭代规划文档
-```
-
----
-
-## 📝 许可证
-
-MIT License - 详见 [LICENSE](LICENSE) 文件
+[MIT License](LICENSE) — 可自由用于学习、毕设、简历项目。

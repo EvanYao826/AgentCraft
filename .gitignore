@@ -11,6 +11,9 @@
 # IDE
 .idea/
 .vscode/
+.claude/
+.playwright-mcp/
+.trae/
 *.iml
 *.ipr
 *.iws
@@ -22,6 +25,7 @@ Thumbs.db
 # Node.js
 node_modules/
 npm-debug.log
+frontend/dist/
 
 # Python
 __pycache__/
@@ -30,18 +34,10 @@ venv/
 *.pkl
 *.faiss
 
-
-# Test files
-test_*.py
-
 # Environment files
 .env
 .env.*
-!.env.template
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+!.env.example
 
 # Uploads directory (user generated content)
 uploads/
@@ -59,10 +55,5 @@ logs
 tmp/
 temp/
 
-
-
 # 向量索引目录
 faiss_index/
-
-# 示例环境变量文件（如果项目使用 .env.example 而非 .env.template）
-!.env.example
