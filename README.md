@@ -28,60 +28,43 @@ AgentCraft 是一个"**前端 + Java 后端 + Python AI 微服务**"的**全栈 
 
 ## 🏗️ 系统架构
 
+```mermaid
+flowchart TB
+    Frontend["⚛️ React 前端"] -->|"HTTP/SSE<br/>JWT认证"| Backend["☕ Spring Boot 后端"]
+    Backend -->|"REST API"| AI["🐍 Python AI 服务"]
+    AI --> Storage["💾 数据存储"]
+    
+    Frontend --> User["👤 用户端<br/>智能问答 · 文档预览 · 历史记录"]
+    Frontend --> Admin["🔧 管理端<br/>仪表盘 · 知识库管理 · Agent执行记录"]
+    
+    Backend --> Controller["🎮 Controller层<br/>Agent·Chat·Auth"]
+    Backend --> Service["📦 Service层<br/>Ai·Chat·Knowledge·Cache"]
+    Backend --> Data["🗄️ 数据访问<br/>MyBatis-Plus·Caffeine·Redis"]
+    
+    AI --> Interface["🌐 Interface层<br/>FastAPI·HTTP/SSE"]
+    AI --> Orchestrator["🔄 Orchestrator层<br/>Planner·Executor·State"]
+    AI --> Tool["🔧 Tool层<br/>ToolRegistry·超时重试"]
+    AI --> Memory["🧠 Memory层<br/>Redis·MongoDB·MySQL"]
+    AI --> Evaluation["📊 Evaluation层<br/>检索充分性·质量评估"]
+    
+    Storage --> MySQL["📊 MySQL<br/>业务数据持久化"]
+    Storage --> Redis["🚀 Redis<br/>缓存会话锁"]
+    Storage --> Milvus["🔍 Milvus<br/>向量相似度检索"]
+    Storage --> Elasticsearch["📜 Elasticsearch<br/>日志分析"]
+    Storage --> MongoDB["🗃️ MongoDB<br/>会话历史存储"]
 ```
-┌───────────────────────────────────────────────────────────────────────────────┐
-│                              ⚛️ React 前端                                     │
-│  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │  用户端：智能问答 · 文档预览 · 历史记录                                    │  │
-│  │  管理端：仪表盘 · 知识库管理 · Agent执行记录 · 知识巡检 · 自动报表         │  │
-│  └─────────────────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────┬──────────────────────────────────────────┘
-                                     │ HTTP / SSE (JWT 认证)
-                                     ▼
-┌───────────────────────────────────────────────────────────────────────────────┐
-│                          ☕ Spring Boot 后端                                   │
-│  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │  Controller : AgentController · ChatController · AuthController        │  │
-│  │  Service    : AiService · ChatService · KnowledgeService · CacheService │  │
-│  │  Data Access: MyBatis-Plus · 多级缓存 (Caffeine + Redis)                │  │
-│  └─────────────────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────┬──────────────────────────────────────────┘
-                                     │ REST API / HTTP
-                                     ▼
-┌───────────────────────────────────────────────────────────────────────────────┐
-│                          🐍 Python AI 服务                                    │
-│  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │  Interface层 (api/)      │ FastAPI路由 · HTTP/SSE接口                   │  │
-│  │  Orchestrator层 (agent/)  │ Planner规划 · Executor执行 · State状态追踪   │  │
-│  │  Tool层 (tools/)          │ ToolRegistry统一注册/调用/超时/重试          │  │
-│  │  Memory层 (core/)         │ Redis短期 · MongoDB会话 · MySQL持久化       │  │
-│  │  Evaluation层             │ 检索充分性判断 · 结果质量评估                │  │
-│  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
-│  多Agent协作流程：                                                              │
-│  ┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐         │
-│  │   Router   │───▶│ Retrieval  │───▶│    Ops     │───▶│ Inspection │         │
-│  │   Agent    │    │   Agent    │    │   Agent    │    │   Agent    │         │
-│  └────────────┘    └────────────┘    └────────────┘    └────────────┘         │
-│         │                                                                           │
-│         │                    ┌────────────┐                                      │
-│         └───────────────────▶│  ChitChat   │                                      │
-│                             │   Agent     │                                      │
-│                             └────────────┘                                      │
-└────────────────────────────────────┬──────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌───────────────────────────────────────────────────────────────────────────────┐
-│                            💾 数据存储与中间件                                 │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  │
-│  │     MySQL      │  │     Redis     │  │    Milvus     │  │ Elasticsearch │  │
-│  │  业务数据持久化 │  │  缓存/会话/锁  │  │ 向量相似度检索 │  │    日志分析    │  │
-│  └───────────────┘  └───────────────┘  └───────────────┘  └───────────────┘  │
-│  ┌───────────────┐  ┌───────────────┐                                          │
-│  │    MongoDB    │  │   阿里云OSS   │                                          │
-│  │  会话历史存储  │  │   文件存储    │                                          │
-│  └───────────────┘  └───────────────┘                                          │
-└───────────────────────────────────────────────────────────────────────────────┘
+
+### 多Agent协作流程
+
+```mermaid
+flowchart LR
+    Router["🎯 Router Agent"] -->|知识型问题| Retrieval["📚 Retrieval Agent"]
+    Router -->|闲聊/问候| ChitChat["💬 ChitChat Agent"]
+    Retrieval --> Ops["⚙️ Ops Agent"]
+    Ops --> Inspection["🔍 Inspection Agent"]
+    
+    Ops -.-> State["📊 状态追踪"]
+    Inspection -.-> State
 ```
 
 ---
