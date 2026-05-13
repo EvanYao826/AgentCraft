@@ -118,11 +118,17 @@ flowchart TD
     C2 --> ANS["📝 答案生成 + 引用来源"]
     C1 --> ANS
 
-    style R fill:#1e3a5f,stroke:#60a5fa,color:#fff
-    style C1 fill:#0f3d0f,stroke:#4ade80,color:#fff
-    style C2 fill:#3b2f00,stroke:#fbbf24,color:#fff
-    style C3 fill:#2d1b4e,stroke:#a78bfa,color:#fff
-    style C4 fill:#4a1942,stroke:#f472b6,color:#fff
+    classDef router fill:#1e3a5f,stroke:#60a5fa,color:#fff
+    classDef chitchat fill:#0f3d0f,stroke:#4ade80,color:#fff
+    classDef retrieval fill:#3b2f00,stroke:#fbbf24,color:#fff
+    classDef ops fill:#2d1b4e,stroke:#a78bfa,color:#fff
+    classDef inspection fill:#4a1942,stroke:#f472b6,color:#fff
+
+    class R router
+    class C1 chitchat
+    class C2 retrieval
+    class C3 ops
+    class C4 inspection
 ```
 
 **Retrieval Agent 内部链路：**
