@@ -33,7 +33,9 @@ class StepType(Enum):
     KNOWLEDGE_SEARCH = "knowledge_search"
     RESULT_EVALUATION = "result_evaluation"
     ANSWER_GENERATION = "answer_generation"
+    MEMORY_READ = "memory_read"
     MEMORY_WRITE = "memory_write"
+    MEMORY_COMPRESS = "memory_compress"
     TOOL_CALL = "tool_call"
 
 

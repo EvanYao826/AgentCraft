@@ -19,6 +19,15 @@ class Executor:
         self.planner = Planner()
         self.llm_service = LLMService()
         self.vector_store = vector_store
+        self._memory_agent = None
+
+    @property
+    def memory_agent(self):
+        """延迟加载 MemoryAgent"""
+        if self._memory_agent is None:
+            from agent.memory_agent import MemoryAgent
+            self._memory_agent = MemoryAgent()
+        return self._memory_agent
 
     def execute_step(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
         """执行单个步骤"""
@@ -40,8 +49,12 @@ class Executor:
                 return self._execute_result_evaluation(state, step)
             elif step.step_type == StepType.ANSWER_GENERATION:
                 return self._execute_answer_generation(state, step)
+            elif step.step_type == StepType.MEMORY_READ:
+                return self._execute_memory_read(state, step)
             elif step.step_type == StepType.MEMORY_WRITE:
                 return self._execute_memory_write(state, step)
+            elif step.step_type == StepType.MEMORY_COMPRESS:
+                return self._execute_memory_compress(state, step)
             elif step.step_type == StepType.TOOL_CALL:
                 return self._execute_tool_call(state, step)
             else:
@@ -236,34 +249,15 @@ class Executor:
         return step.output_data
 
     def _execute_answer_generation(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
-        """执行答案生成（含会话记忆读取）"""
+        """执行答案生成（使用 Memory Agent 加载记忆）"""
         question = state.original_input or ""
         context = state.context or ""
 
-        # 1. 读取会话记忆作为上下文
-        conversation_history = ""
-        if state.conversation_id and tool_registry.has_tool("conversation_memory_read"):
-            try:
-                history = tool_registry.invoke_tool(
-                    "conversation_memory_read",
-                    {
-                        "conversation_id": state.conversation_id,
-                        "limit": 10
-                    },
-                    run_id=state.run_id
-                )
-                messages = history.get("messages", [])
-                if messages:
-                    conversation_history = self._format_history(messages)
-                    logger.info(f"[{state.run_id}] Loaded {len(messages)} messages from memory"
-                                f" (compressed: {history.get('compressed', False)})")
-            except Exception as e:
-                logger.warning(f"[{state.run_id}] Failed to read conversation memory: {e}")
-
-        # 合并上下文
+        # 使用 Memory Agent 加载记忆
+        memory_context = self.memory_agent.load_memory(state)
         full_context = context
-        if conversation_history:
-            full_context = f"{context}\n\n{conversation_history}" if context else conversation_history
+        if memory_context:
+            full_context = f"{context}\n\n{memory_context}" if context else memory_context
 
         chunks = None
         sources = []
@@ -347,36 +341,47 @@ class Executor:
         return "\n".join(formatted)
 
     def _execute_memory_write(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
-        """执行记忆写入"""
-        success = True
-        message = "记忆写入完成"
+        """执行记忆写入（使用 Memory Agent）"""
+        answer = None
+        for s in reversed(state.steps):
+            if s.step_type == StepType.ANSWER_GENERATION and s.output_data:
+                answer = s.output_data.get("answer", "")
+                break
 
-        if tool_registry.has_tool("memory_write"):
-            try:
-                answer = None
-                for s in reversed(state.steps):
-                    if s.step_type == StepType.ANSWER_GENERATION and s.output_data:
-                        answer = s.output_data.get("answer", "")
-                        break
-
-                tool_registry.invoke_tool(
-                    "memory_write",
-                    {
-                        "conversation_id": state.conversation_id,
-                        "user_id": state.user_id,
-                        "question": state.original_input,
-                        "answer": answer
-                    },
-                    run_id=state.run_id
-                )
-            except Exception as e:
-                logger.warning(f"[{state.run_id}] memory_write tool failed: {e}")
-                success = False
-                message = f"记忆写入失败: {str(e)}"
+        # 使用 Memory Agent 保存记忆
+        self.memory_agent.save_memory(state, state.original_input, answer)
 
         step.complete({
-            "success": success,
-            "message": message
+            "success": True,
+            "message": "记忆写入完成"
+        })
+
+        return step.output_data
+
+    def _execute_memory_read(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
+        """执行记忆读取（使用 Memory Agent）"""
+        context = self.memory_agent.load_memory(state)
+
+        step.complete({
+            "context": context,
+            "has_history": bool(context)
+        })
+
+        # 将记忆上下文保存到 state，供后续步骤使用
+        if context:
+            state.context = f"{state.context}\n\n{context}" if state.context else context
+
+        return step.output_data
+
+    def _execute_memory_compress(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
+        """执行记忆压缩"""
+        # 压缩逻辑已在 conversation_memory_read 工具中实现
+        # 此步骤主要用于标记和日志记录
+        logger.info(f"[{state.run_id}] Memory compress step executed")
+
+        step.complete({
+            "success": True,
+            "message": "记忆压缩检查完成"
         })
 
         return step.output_data

@@ -299,14 +299,26 @@ class Planner:
         """规划执行步骤"""
         intent = self.recognize_intent(state)
 
+        # 如果有会话ID，在开始时读取记忆
+        has_conversation = bool(state.conversation_id)
+
         if intent.intent == IntentType.CHITCHAT:
-            return ["answer_generation"]
+            steps = []
+            if has_conversation:
+                steps.append("memory_read")
+            steps.append("answer_generation")
+            if has_conversation:
+                steps.append("memory_write")
+            return steps
 
         if intent.intent == IntentType.IDENTITY_QUERY:
             return ["identity_answer"]
 
         if intent.intent == IntentType.KNOWLEDGE_QA:
-            steps = ["question_rewrite"]
+            steps = []
+            if has_conversation:
+                steps.append("memory_read")
+            steps.append("question_rewrite")
             if len(state.original_input or "") < 10:
                 steps.append("clarification")
             steps.extend([
@@ -314,13 +326,23 @@ class Planner:
                 "result_evaluation",
                 "answer_generation"
             ])
-            steps.append("memory_write")
+            if has_conversation:
+                steps.append("memory_write")
             return steps
 
         if intent.intent == IntentType.ADMIN_OPERATION:
-            return ["admin_operation", "memory_write"]
+            steps = ["admin_operation"]
+            if has_conversation:
+                steps.append("memory_write")
+            return steps
 
-        return ["question_rewrite", "knowledge_search", "answer_generation", "memory_write"]
+        steps = []
+        if has_conversation:
+            steps.append("memory_read")
+        steps.extend(["question_rewrite", "knowledge_search", "answer_generation"])
+        if has_conversation:
+            steps.append("memory_write")
+        return steps
 
     def should_terminate(self, state: AgentState) -> Tuple[bool, str]:
         """判断是否应该终止"""

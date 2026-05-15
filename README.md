@@ -396,8 +396,8 @@ npm run dev
 ### 当前存在的问题
 
 1. **Reasoning Agent 缺失**：答案生成目前由 KnowledgeQAAgent 直接调用 LLM，没有独立的归纳推理 Agent，复杂问题的推理能力有限。
-2. **Memory Agent 缺失**：记忆管理目前是 memory_read/write 工具的被动调用，没有独立的记忆压缩 Agent，长对话场景下记忆效率会下降。
-3. **四级记忆体系不完整**：短期记忆（Redis）和会话记忆（MongoDB）已实现，但知识分层记忆和用户个性化记忆尚未实现。
+2. ~~**Memory Agent 缺失**~~ ✅ 已实现独立的 Memory Agent（`agent/memory_agent.py`），支持会话记忆读写、上下文压缩、用户画像加载和偏好提取。
+3. ~~**四级记忆体系不完整**~~ ✅ 已完善四级记忆体系：短期记忆（AgentState）、会话记忆（Redis）、用户记忆（MySQL）、知识记忆（向量库）均已实现。
 4. **Rerank 默认关闭**：Retrieval Agent 中 `use_rerank` 默认为 False，需要手动开启。支持 `simple`（规则排序，零依赖）和 `bge`（语义重排，需下载 ~1.1GB 模型）两种模式，开发环境建议用 `simple`。
 5. ~~**无 Docker Compose**~~ ✅ 已提供 `docker-compose.yml`，支持一键部署。
 6. **前端无 TypeScript**：前端使用纯 JavaScript，没有类型检查，对于大型项目可维护性不足。
@@ -406,7 +406,7 @@ npm run dev
 
 ### 改进方向
 
-- 补充 Reasoning Agent 和 Memory Agent，完善五层架构
+- 补充 Reasoning Agent，完善五层架构
 - 接入更多 LLM 提供商（OpenAI / Claude / 本地 Ollama）
 - 前端迁移到 TypeScript + 状态管理库
 - 完善单元测试覆盖率
