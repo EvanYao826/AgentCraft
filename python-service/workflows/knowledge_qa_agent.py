@@ -5,6 +5,7 @@ from agent.events import EventBus, event_bus
 from workflows.retrieval_agent import RetrievalAgent
 from core.vector_store import vector_store
 from core.llm import LLMService
+from tools.registry import tool_registry
 import logging
 import json
 
@@ -33,33 +34,69 @@ class KnowledgeQAAgent:
         logger.info(f"[KnowledgeQAAgent] Processing question: {question[:50]}...")
 
         try:
-            # 1. 直接向量检索（不经过 RetrievalAgent 的额外工具链）
+            # 1. 读取会话记忆作为上下文
+            conversation_history = ""
+            if conversation_id and tool_registry.has_tool("conversation_memory_read"):
+                try:
+                    history = tool_registry.invoke_tool(
+                        "conversation_memory_read",
+                        {"conversation_id": conversation_id, "limit": 10}
+                    )
+                    messages = history.get("messages", [])
+                    if messages:
+                        conversation_history = self._format_history(messages)
+                        logger.info(f"[KnowledgeQAAgent] Loaded {len(messages)} messages from memory"
+                                    f" (compressed: {history.get('compressed', False)})")
+                except Exception as e:
+                    logger.warning(f"[KnowledgeQAAgent] Failed to read conversation memory: {e}")
+
+            # 合并上下文
+            full_context = context
+            if conversation_history:
+                full_context = f"{context}\n\n{conversation_history}" if context else conversation_history
+
+            # 2. 直接向量检索（不经过 RetrievalAgent 的额外工具链）
             docs = self.vector_store.search(
                 query=question,
                 k=5,
                 similarity_threshold=0.7,
-                use_rerank=False  # 跳过重排序，减少开销
+                use_rerank=False
             )
 
             logger.info(f"[KnowledgeQAAgent] Retrieved {len(docs)} documents")
 
-            # 2. 无文档 → 直接返回
+            # 3. 无文档 → 使用会话上下文回答（如果有）
             if not docs:
+                if full_context:
+                    answer = self.llm_service.get_answer(
+                        question=question,
+                        context_docs=[],
+                        conversation_context=full_context
+                    )
+                else:
+                    answer = "抱歉，知识库中没有找到与您问题相关的内容。"
+
+                # 写入会话记忆
+                self._save_to_memory(conversation_id, question, answer)
+
                 return {
-                    "answer": "抱歉，知识库中没有找到与您问题相关的内容。",
+                    "answer": answer,
                     "sources": [],
                     "has_sources": False,
                     "task_type": "knowledge_qa"
                 }
 
-            # 3. LLM 生成回答
+            # 4. LLM 生成回答（带会话上下文）
             answer = self.llm_service.get_answer(
                 question=question,
                 context_docs=docs,
-                conversation_context=context
+                conversation_context=full_context
             )
 
-            # 4. 构建引用来源（按 doc_id 去重）
+            # 5. 写入会话记忆
+            self._save_to_memory(conversation_id, question, answer)
+
+            # 6. 构建引用来源（按 doc_id 去重）
             seen_doc_ids = set()
             sources = []
             for doc in docs:
@@ -93,6 +130,41 @@ class KnowledgeQAAgent:
                 "task_type": "knowledge_qa",
                 "error": True
             }
+
+    def _save_to_memory(self, conversation_id: str, question: str, answer: str):
+        """保存对话到会话记忆"""
+        if not conversation_id or not tool_registry.has_tool("conversation_memory_write"):
+            return
+        try:
+            tool_registry.invoke_tool(
+                "conversation_memory_write",
+                {"conversation_id": conversation_id, "role": "user", "content": question}
+            )
+            tool_registry.invoke_tool(
+                "conversation_memory_write",
+                {"conversation_id": conversation_id, "role": "assistant", "content": answer}
+            )
+            logger.info(f"[KnowledgeQAAgent] Saved conversation to memory")
+        except Exception as e:
+            logger.warning(f"[KnowledgeQAAgent] Failed to write conversation memory: {e}")
+
+    def _format_history(self, messages: list) -> str:
+        """格式化对话历史为上下文字符串"""
+        if not messages:
+            return ""
+
+        formatted = []
+        for msg in messages:
+            role = msg.get("role", "unknown")
+            content = msg.get("content", "")
+            if role == "system":
+                formatted.append(content)
+            elif role == "user":
+                formatted.append(f"用户: {content}")
+            elif role == "assistant":
+                formatted.append(f"AI: {content}")
+
+        return "\n".join(formatted)
 
     def ask_stream(self, question: str, conversation_id: Optional[str] = None,
                    user_id: Optional[str] = None, context: str = "",

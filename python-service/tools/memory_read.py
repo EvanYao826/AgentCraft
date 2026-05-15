@@ -1,11 +1,17 @@
 from typing import Dict, Any, List
 from tools.base import Tool, ToolSchema, SchemaProperty, ToolMetadata
 from core.config import config
+from core.redis_client import redis_client
+from core.llm import LLMService
+
+# 压缩阈值配置
+COMPRESS_THRESHOLD = 10  # 超过10轮触发压缩
+KEEP_RECENT = 5          # 保留最近5轮完整对话
 
 
 class ConversationMemoryReadTool(Tool):
-    """对话记忆读取工具"""
-    
+    """对话记忆读取工具（含上下文压缩）"""
+
     def __init__(self):
         input_schema = ToolSchema(
             properties={
@@ -19,17 +25,11 @@ class ConversationMemoryReadTool(Tool):
                     description="返回消息数量限制",
                     required=False,
                     default=10
-                ),
-                "offset": SchemaProperty(
-                    type="number",
-                    description="消息偏移量",
-                    required=False,
-                    default=0
                 )
             },
             type="object"
         )
-        
+
         output_schema = ToolSchema(
             properties={
                 "messages": SchemaProperty(
@@ -46,18 +46,23 @@ class ConversationMemoryReadTool(Tool):
                     type="number",
                     description="总消息数量",
                     required=True
+                ),
+                "compressed": SchemaProperty(
+                    type="boolean",
+                    description="是否已压缩",
+                    required=False
                 )
             },
             type="object"
         )
-        
+
         metadata = ToolMetadata(
-            timeout_ms=5000,
+            timeout_ms=10000,  # 压缩可能需要更长时间
             max_retries=1,
             permission="user",
             description="读取对话记忆"
         )
-        
+
         super().__init__(
             name="conversation_memory_read",
             description="读取对话记忆",
@@ -65,53 +70,92 @@ class ConversationMemoryReadTool(Tool):
             output_schema=output_schema,
             metadata=metadata
         )
-    
+
+        self.llm_service = LLMService()
+
     def execute(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
-        """执行对话记忆读取"""
+        """执行对话记忆读取（含上下文压缩）"""
         conversation_id = parameters.get("conversation_id")
         limit = int(parameters.get("limit", 10))
-        offset = int(parameters.get("offset", 0))
-        
-        config.logger.info(f"Reading conversation memory for ID: {conversation_id}, limit: {limit}, offset: {offset}")
-        
-        # 这里是一个示例实现，实际应该从数据库或缓存中读取
-        # 后续需要接入真实的对话存储
-        
-        # 模拟对话消息
-        mock_messages = [
-            {
-                "id": "1",
-                "role": "user",
-                "content": "你好，我想了解AI知识系统",
-                "timestamp": "2026-04-27T10:00:00Z"
-            },
-            {
-                "id": "2",
-                "role": "assistant",
-                "content": "您好！AI知识系统是一个基于知识库的智能问答系统，能够帮助您快速获取相关信息。",
-                "timestamp": "2026-04-27T10:00:05Z"
-            },
-            {
-                "id": "3",
-                "role": "user",
-                "content": "它有哪些功能？",
-                "timestamp": "2026-04-27T10:01:00Z"
-            },
-            {
-                "id": "4",
-                "role": "assistant",
-                "content": "AI知识系统具有文档解析、向量检索、智能问答、对话记忆等功能。",
-                "timestamp": "2026-04-27T10:01:05Z"
+
+        config.logger.info(f"Reading conversation memory for ID: {conversation_id}")
+
+        # 获取消息总数
+        total_count = redis_client.get_message_count(conversation_id)
+
+        if total_count == 0:
+            # 没有消息，返回空列表
+            return {
+                "messages": [],
+                "conversation_id": conversation_id,
+                "total_count": 0,
+                "compressed": False
             }
-        ]
-        
-        # 模拟分页
-        total_count = len(mock_messages)
-        end_index = min(offset + limit, total_count)
-        paginated_messages = mock_messages[offset:end_index]
-        
+
+        if total_count <= COMPRESS_THRESHOLD:
+            # 消息不多，直接返回最近的
+            messages = redis_client.get_messages(conversation_id, limit)
+            return {
+                "messages": messages,
+                "conversation_id": conversation_id,
+                "total_count": total_count,
+                "compressed": False
+            }
+
+        # 超过阈值，触发压缩
+        # 保留最近 N 轮完整对话
+        recent_messages = redis_client.get_messages(conversation_id, KEEP_RECENT)
+
+        # 检查是否已有缓存的摘要
+        cached_summary = redis_client.get_summary(conversation_id)
+
+        if cached_summary:
+            summary = cached_summary
+            config.logger.info(f"Using cached summary for conversation {conversation_id}")
+        else:
+            # 获取早期消息用于压缩
+            all_messages = redis_client.get_all_messages(conversation_id)
+            early_messages = all_messages[:-KEEP_RECENT]
+            summary = self._compress_history(early_messages, conversation_id)
+            # 缓存摘要
+            redis_client.set_summary(conversation_id, summary)
+            config.logger.info(f"Compressed {len(early_messages)} messages into summary")
+
+        # 返回：摘要 + 最近5轮
         return {
-            "messages": paginated_messages,
+            "messages": [
+                {"role": "system", "content": f"[历史对话摘要] {summary}"}
+            ] + recent_messages,
             "conversation_id": conversation_id,
-            "total_count": total_count
+            "total_count": total_count,
+            "compressed": True,
+            "original_count": total_count
         }
+
+    def _compress_history(self, messages: List[Dict], conversation_id: str) -> str:
+        """用 LLM 压缩早期对话为摘要"""
+        if not messages:
+            return "无历史对话记录。"
+
+        history_text = "\n".join([
+            f"{m.get('role', 'unknown')}: {m.get('content', '')}"
+            for m in messages
+        ])
+
+        prompt = f"""请将以下对话压缩成简短摘要，保留关键信息：
+1. 用户问了什么问题
+2. AI 回答了什么要点
+3. 用户的偏好或关注点
+
+对话内容：
+{history_text}
+
+请用 2-3 句话概括，不要遗漏重要信息。"""
+
+        try:
+            summary = self.llm_service.chat(prompt)
+            return summary
+        except Exception as e:
+            config.logger.warning(f"Failed to compress history: {e}")
+            # 压缩失败时，返回简化版本
+            return f"用户进行了 {len(messages)} 轮对话，讨论了相关知识问题。"

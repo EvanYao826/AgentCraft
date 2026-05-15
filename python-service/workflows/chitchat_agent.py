@@ -1,5 +1,6 @@
 from typing import Dict, Any, Optional, Generator
 from core.llm import llm
+from tools.registry import tool_registry
 import logging
 import json
 
@@ -62,7 +63,29 @@ class ChitChatAgent:
         logger.info(f"[ChitChatAgent] Processing chitchat: {question[:50]}...")
 
         try:
-            answer = self._generate_chitchat_response(question)
+            # 1. 读取会话记忆作为上下文
+            conversation_history = ""
+            if conversation_id and tool_registry.has_tool("conversation_memory_read"):
+                try:
+                    history = tool_registry.invoke_tool(
+                        "conversation_memory_read",
+                        {
+                            "conversation_id": conversation_id,
+                            "limit": 10
+                        }
+                    )
+                    messages = history.get("messages", [])
+                    if messages:
+                        conversation_history = self._format_history(messages)
+                        logger.info(f"[ChitChatAgent] Loaded {len(messages)} messages from memory")
+                except Exception as e:
+                    logger.warning(f"[ChitChatAgent] Failed to read conversation memory: {e}")
+
+            # 2. 生成回复（带会话上下文）
+            answer = self._generate_chitchat_response(question, conversation_history)
+
+            # 3. 写入会话记忆
+            self._save_to_memory(conversation_id, question, answer)
 
             return {
                 "answer": answer,
@@ -79,6 +102,41 @@ class ChitChatAgent:
                 "task_type": "chitchat",
                 "error": True
             }
+
+    def _format_history(self, messages: list) -> str:
+        """格式化对话历史为上下文字符串"""
+        if not messages:
+            return ""
+
+        formatted = []
+        for msg in messages:
+            role = msg.get("role", "unknown")
+            content = msg.get("content", "")
+            if role == "system":
+                formatted.append(content)
+            elif role == "user":
+                formatted.append(f"用户: {content}")
+            elif role == "assistant":
+                formatted.append(f"AI: {content}")
+
+        return "\n".join(formatted)
+
+    def _save_to_memory(self, conversation_id: str, question: str, answer: str):
+        """保存对话到会话记忆"""
+        if not conversation_id or not tool_registry.has_tool("conversation_memory_write"):
+            return
+        try:
+            tool_registry.invoke_tool(
+                "conversation_memory_write",
+                {"conversation_id": conversation_id, "role": "user", "content": question}
+            )
+            tool_registry.invoke_tool(
+                "conversation_memory_write",
+                {"conversation_id": conversation_id, "role": "assistant", "content": answer}
+            )
+            logger.info(f"[ChitChatAgent] Saved conversation to memory")
+        except Exception as e:
+            logger.warning(f"[ChitChatAgent] Failed to write conversation memory: {e}")
 
     def chat_stream(self, question: str, conversation_id: Optional[str] = None,
                     user_id: Optional[str] = None, context: str = "",
@@ -122,7 +180,7 @@ class ChitChatAgent:
                 "content": str(e)
             })
 
-    def _generate_chitchat_response(self, question: str) -> str:
+    def _generate_chitchat_response(self, question: str, conversation_history: str = "") -> str:
         """
         生成闲聊回复
 
@@ -146,11 +204,11 @@ class ChitChatAgent:
 
         # "你知道X吗" 类 — 用LLM给出有内容的回复，而不是机械重定向
         if any(kw in lower_question for kw in ["你知道", "你了解", "你认识", "听说过", "你听过"]):
-            return self._llm_chitchat(question)
+            return self._llm_chitchat(question, conversation_history)
 
         # 天气类 — 用LLM给出更自然的回复
         if any(kw in lower_question for kw in ["天气", "下雨", "晴天", "温度"]):
-            return self._llm_chitchat(question)
+            return self._llm_chitchat(question, conversation_history)
 
         # 时间类
         if any(kw in lower_question for kw in ["几点", "时间", "日期", "今天是"]):
@@ -158,32 +216,42 @@ class ChitChatAgent:
 
         # 笑话类 — 用LLM讲笑话，比预设的更有趣
         if any(kw in lower_question for kw in ["笑话", "讲个笑话", "笑", "搞笑"]):
-            return self._llm_chitchat(question)
+            return self._llm_chitchat(question, conversation_history)
 
         # 日常闲聊类 — 用LLM自然回复
         if any(kw in lower_question for kw in ["在干嘛", "在做什么", "忙吗", "累不累", "无聊", "睡不着"]):
-            return self._llm_chitchat(question)
+            return self._llm_chitchat(question, conversation_history)
 
         # 引导类 — 用LLM自然回复
         if any(kw in lower_question for kw in ["聊聊", "聊天", "陪我", "有空吗", "最近怎么样", "最近好吗"]):
-            return self._llm_chitchat(question)
+            return self._llm_chitchat(question, conversation_history)
 
         # 情感类 — 用LLM给出有共情的回复
         if any(kw in lower_question for kw in ["开心", "高兴", "难过", "伤心", "郁闷", "烦", "累", "困", "饿"]):
-            return self._llm_chitchat(question)
+            return self._llm_chitchat(question, conversation_history)
 
         # 确认/反问类
         if any(kw in lower_question for kw in ["可以吗", "行吗", "好吗", "对不对", "是不是", "会不会"]):
-            return self._llm_chitchat(question)
+            return self._llm_chitchat(question, conversation_history)
 
         # 其他所有闲聊 — 调LLM生成自然回复
-        return self._llm_chitchat(question)
+        return self._llm_chitchat(question, conversation_history)
 
-    def _llm_chitchat(self, question: str) -> str:
+    def _llm_chitchat(self, question: str, conversation_history: str = "") -> str:
         """调用LLM生成自然的闲聊回复"""
         try:
+            # 构建上下文
+            context_section = ""
+            if conversation_history:
+                context_section = f"""
+对话历史：
+{conversation_history}
+
+请基于对话历史，理解上下文后回复用户。"""
+
             prompt = f"""你是一个友好、健谈的AI助手。请用自然、亲切的方式回复用户，就像朋友之间聊天一样。
 回复要简短有趣，100字以内。不要说"你可以问我知识类问题"这种话。
+{context_section}
 
 用户说：{question}"""
 

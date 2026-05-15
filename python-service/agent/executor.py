@@ -236,9 +236,34 @@ class Executor:
         return step.output_data
 
     def _execute_answer_generation(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
-        """执行答案生成"""
+        """执行答案生成（含会话记忆读取）"""
         question = state.original_input or ""
         context = state.context or ""
+
+        # 1. 读取会话记忆作为上下文
+        conversation_history = ""
+        if state.conversation_id and tool_registry.has_tool("conversation_memory_read"):
+            try:
+                history = tool_registry.invoke_tool(
+                    "conversation_memory_read",
+                    {
+                        "conversation_id": state.conversation_id,
+                        "limit": 10
+                    },
+                    run_id=state.run_id
+                )
+                messages = history.get("messages", [])
+                if messages:
+                    conversation_history = self._format_history(messages)
+                    logger.info(f"[{state.run_id}] Loaded {len(messages)} messages from memory"
+                                f" (compressed: {history.get('compressed', False)})")
+            except Exception as e:
+                logger.warning(f"[{state.run_id}] Failed to read conversation memory: {e}")
+
+        # 合并上下文
+        full_context = context
+        if conversation_history:
+            full_context = f"{context}\n\n{conversation_history}" if context else conversation_history
 
         chunks = None
         sources = []
@@ -263,12 +288,37 @@ class Executor:
                 })()
                 docs.append(doc)
 
-        if docs and should_return_sources:
-            answer = self.llm_service.get_answer(question, docs, context)
-        elif not docs:
-            answer = self.llm_service.get_answer(question, [], context)
-        else:
-            answer = self.llm_service.get_answer(question, [], context)
+        # 如果有文档且应该返回来源，传入文档；否则传空列表
+        answer = self.llm_service.get_answer(
+            question, docs if (docs and should_return_sources) else [], full_context
+        )
+
+        # 2. 写入会话记忆
+        if state.conversation_id and tool_registry.has_tool("conversation_memory_write"):
+            try:
+                # 写入用户问题
+                tool_registry.invoke_tool(
+                    "conversation_memory_write",
+                    {
+                        "conversation_id": state.conversation_id,
+                        "role": "user",
+                        "content": question
+                    },
+                    run_id=state.run_id
+                )
+                # 写入AI回答
+                tool_registry.invoke_tool(
+                    "conversation_memory_write",
+                    {
+                        "conversation_id": state.conversation_id,
+                        "role": "assistant",
+                        "content": answer
+                    },
+                    run_id=state.run_id
+                )
+                logger.info(f"[{state.run_id}] Saved conversation to memory")
+            except Exception as e:
+                logger.warning(f"[{state.run_id}] Failed to write conversation memory: {e}")
 
         step.complete({
             "answer": answer,
@@ -277,6 +327,24 @@ class Executor:
         })
 
         return step.output_data
+
+    def _format_history(self, messages: list) -> str:
+        """格式化对话历史为上下文字符串"""
+        if not messages:
+            return ""
+
+        formatted = []
+        for msg in messages:
+            role = msg.get("role", "unknown")
+            content = msg.get("content", "")
+            if role == "system":
+                formatted.append(content)
+            elif role == "user":
+                formatted.append(f"用户: {content}")
+            elif role == "assistant":
+                formatted.append(f"AI: {content}")
+
+        return "\n".join(formatted)
 
     def _execute_memory_write(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
         """执行记忆写入"""

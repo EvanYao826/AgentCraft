@@ -24,6 +24,19 @@ class ConfigManager:
         self.MILVUS_PORT = os.getenv("MILVUS_PORT", "19530")
         self.MILVUS_USER = os.getenv("MILVUS_USER", "")
         self.MILVUS_PASSWORD = os.getenv("MILVUS_PASSWORD", "")
+
+        # Redis Configuration
+        self.REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+        self.REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+        self.REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
+        self.REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+
+        # MySQL Configuration
+        self.DB_HOST = os.getenv("MYSQL_HOST", "localhost")
+        self.DB_PORT = int(os.getenv("MYSQL_PORT", "3306"))
+        self.DB_USER = os.getenv("MYSQL_USERNAME", "root")
+        self.DB_PASSWORD = os.getenv("MYSQL_PASSWORD", "123456")
+        self.DB_NAME = os.getenv("MYSQL_DATABASE", "ai_knowledge_db")
         
         # Vector Store Configuration
         self.USE_MILVUS = os.getenv("USE_MILVUS", "true").lower() == "true"

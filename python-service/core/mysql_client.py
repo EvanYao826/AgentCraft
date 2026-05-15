@@ -1,6 +1,7 @@
 import os
+import json
 import mysql.connector
-from mysql.connector import Error
+from mysql.connector import Error, pooling
 from typing import List, Dict, Any
 import logging
 
@@ -177,3 +178,102 @@ class MySQLClient:
 
 # 创建全局实例
 mysql_client = MySQLClient()
+
+
+class UserMemoryClient:
+    """用户记忆客户端（连接池版本）"""
+
+    _pool = None
+
+    @classmethod
+    def get_pool(cls):
+        """获取连接池（懒初始化，单例）"""
+        if cls._pool is None:
+            cls._pool = pooling.MySQLConnectionPool(
+                pool_name="user_memory_pool",
+                pool_size=10,               # 连接池大小
+                pool_reset_session=True,     # 归还连接时重置会话
+                host=os.getenv("MYSQL_HOST", "localhost"),
+                port=int(os.getenv("MYSQL_PORT", "3306")),
+                user=os.getenv("MYSQL_USERNAME", "root"),
+                password=os.getenv("MYSQL_PASSWORD", "123456"),
+                database=os.getenv("MYSQL_DATABASE", "ai_knowledge_db"),
+                charset="utf8mb4",
+                autocommit=True
+            )
+        return cls._pool
+
+    def _get_connection(self):
+        """从连接池获取连接"""
+        return self.get_pool().get_connection()
+
+    def get_user_memory(self, user_id: str) -> Dict[str, Any]:
+        """获取用户所有记忆"""
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(
+                "SELECT memory_key, memory_value FROM user_memory WHERE user_id = %s",
+                (user_id,)
+            )
+            rows = cursor.fetchall()
+            cursor.close()
+        finally:
+            conn.close()  # 归还到连接池，不是真正关闭
+
+        memory = {}
+        for row in rows:
+            try:
+                memory[row["memory_key"]] = json.loads(row["memory_value"])
+            except:
+                memory[row["memory_key"]] = row["memory_value"]
+        return memory
+
+    def update_user_memory(self, user_id: str, key: str, value: Dict[str, Any],
+                           source: str = "agent", confidence: float = 1.0):
+        """更新用户记忆（upsert）"""
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO user_memory (user_id, memory_key, memory_value, source, confidence)
+                VALUES (%s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    memory_value = VALUES(memory_value),
+                    source = VALUES(source),
+                    confidence = VALUES(confidence)
+            """, (user_id, key, json.dumps(value, ensure_ascii=False), source, confidence))
+            conn.commit()
+            cursor.close()
+        finally:
+            conn.close()  # 归还到连接池
+
+    def batch_get_user_memories(self, user_ids: list) -> Dict[str, Dict]:
+        """批量获取多个用户的记忆（减少连接获取次数）"""
+        if not user_ids:
+            return {}
+
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            placeholders = ",".join(["%s"] * len(user_ids))
+            cursor.execute(
+                f"SELECT user_id, memory_key, memory_value FROM user_memory WHERE user_id IN ({placeholders})",
+                user_ids
+            )
+            rows = cursor.fetchall()
+            cursor.close()
+        finally:
+            conn.close()
+
+        result = {uid: {} for uid in user_ids}
+        for row in rows:
+            try:
+                result[row["user_id"]][row["memory_key"]] = json.loads(row["memory_value"])
+            except:
+                result[row["user_id"]][row["memory_key"]] = row["memory_value"]
+        return result
+
+
+# 创建全局实例
+user_memory_client = UserMemoryClient()
