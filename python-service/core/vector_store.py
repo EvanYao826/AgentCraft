@@ -1,12 +1,19 @@
 import os
 import shutil
 from typing import List, Optional, Dict, Any
-from langchain_community.vectorstores import FAISS, Milvus
+from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import DashScopeEmbeddings, HuggingFaceEmbeddings
 from langchain_core.documents import Document
-from pymilvus import connections, utility
 from core.reranker import create_reranker, BaseReranker
 from core.config import config
+
+# pymilvus 和 Milvus 是可选依赖，仅在使用 Milvus 时需要
+try:
+    from pymilvus import connections, utility
+    from langchain_community.vectorstores import Milvus
+    MILVUS_AVAILABLE = True
+except ImportError:
+    MILVUS_AVAILABLE = False
 
 
 class VectorStoreManager:
@@ -51,6 +58,11 @@ class VectorStoreManager:
             else:
                 config.logger.warning("DASHSCOPE_API_KEY not found. Falling back to local HuggingFace Embeddings.")
                 self.embeddings = HuggingFaceEmbeddings(model_name=config.LOCAL_EMBEDDING_MODEL)
+
+        # 如果 pymilvus 未安装，强制使用 FAISS
+        if self.use_milvus and not MILVUS_AVAILABLE:
+            config.logger.warning("pymilvus not installed, falling back to FAISS")
+            self.use_milvus = False
 
         # 根据配置选择向量数据库
         if self.use_milvus:
