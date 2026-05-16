@@ -18,6 +18,7 @@ class TaskType(Enum):
     KNOWLEDGE_QA = "knowledge_qa"
     ADMIN_COPILOT = "admin_copilot"
     KNOWLEDGE_INSPECTION = "knowledge_inspection"
+    REASONING = "reasoning"
     UNKNOWN = "unknown"
 
 
@@ -31,6 +32,15 @@ class RouterAgent:
         self.inspection_agent = InspectionAgent()
         self.retrieval_agent = RetrievalAgent()
         self.classifier = IntentClassifier()
+        self._reasoning_agent = None
+
+    @property
+    def reasoning_agent(self):
+        """延迟加载 ReasoningAgent"""
+        if self._reasoning_agent is None:
+            from workflows.reasoning_agent import ReasoningAgent
+            self._reasoning_agent = ReasoningAgent()
+        return self._reasoning_agent
 
     def route(self, input_text: str, conversation_id: Optional[str] = None,
               user_id: Optional[str] = None, context: str = "",
@@ -73,6 +83,11 @@ class RouterAgent:
                 inspection_type = self._parse_inspection_type(input_text)
                 return self.inspection_agent.inspect(
                     inspection_type, conversation_id, user_id, context, **kwargs
+                )
+
+            elif task_type == TaskType.REASONING:
+                return self.reasoning_agent.reason(
+                    input_text, context, conversation_id
                 )
 
             else:
@@ -141,6 +156,16 @@ class RouterAgent:
                 ):
                     yield event
 
+            elif task_type == TaskType.REASONING:
+                result = self.reasoning_agent.reason(
+                    input_text, context, conversation_id
+                )
+                yield json.dumps({
+                    "type": "answer",
+                    "content": result.get("answer", ""),
+                    "sources": result.get("sources", [])
+                })
+
             else:
                 for event in self.knowledge_qa_agent.ask_stream(
                     input_text, conversation_id, user_id, context, **kwargs
@@ -177,7 +202,40 @@ class RouterAgent:
             IntentType.UNKNOWN: TaskType.KNOWLEDGE_QA,
         }
 
-        return intent_to_task.get(result.intent, TaskType.KNOWLEDGE_QA)
+        task_type = intent_to_task.get(result.intent, TaskType.KNOWLEDGE_QA)
+
+        # KNOWLEDGE_QA 进一步判断复杂度，可能升级为 REASONING
+        if task_type == TaskType.KNOWLEDGE_QA:
+            complexity = self.classify_complexity(input_text)
+            if complexity == "complex":
+                return TaskType.REASONING
+
+        return task_type
+
+    def classify_complexity(self, input_text: str) -> str:
+        """
+        判断问题复杂度，决定走哪条链路
+
+        Returns:
+            "simple"  — L1：直接检索+生成
+            "medium" — L2：问题改写+检索+重排序+生成
+            "complex" — L3：分解子问题+逐个推理+汇总
+        """
+        # L3：复杂问题指标（对比、分析、归纳类）
+        l3_indicators = ["对比", "比较", "优缺点", "区别", "异同",
+                         "分析", "总结", "归纳", "评估", "权衡"]
+        if any(ind in input_text for ind in l3_indicators) and len(input_text) > 15:
+            return "complex"
+
+        # L2：需要改写/上下文的指标
+        l2_indicators = ["它", "这个", "那个", "上面", "之前", "刚才"]
+        has_pronoun = any(ind in input_text for ind in l2_indicators)
+
+        if has_pronoun or len(input_text.strip()) < 10:
+            return "medium"
+
+        # L1：简单问题
+        return "simple"
 
     def _parse_inspection_type(self, input_text: str) -> str:
         """从输入中解析巡检类型"""
@@ -201,6 +259,7 @@ class RouterAgent:
             TaskType.KNOWLEDGE_QA: self.knowledge_qa_agent,
             TaskType.ADMIN_COPILOT: self.admin_copilot_agent,
             TaskType.KNOWLEDGE_INSPECTION: self.inspection_agent,
+            TaskType.REASONING: self.reasoning_agent,
         }
         return agent_map.get(task_type, self.knowledge_qa_agent)
 

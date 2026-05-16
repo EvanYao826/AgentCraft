@@ -125,7 +125,7 @@ class Executor:
     def _execute_question_rewrite(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
         """执行问题改写"""
         question = state.original_input or ""
-        rewrite_result = self.planner.rewrite_question(question)
+        rewrite_result = self.planner.rewrite_question(question, conversation_context=state.context or "")
 
         state.add_intermediate_conclusion(
             step_id=step.step_id,

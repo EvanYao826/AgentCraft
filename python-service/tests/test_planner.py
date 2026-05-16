@@ -97,17 +97,18 @@ class TestClarificationCheck:
 class TestQuestionRewrite:
     """测试问题改写"""
 
-    def test_rewrite_standard(self, planner):
-        """测试标准改写"""
-        result = planner.rewrite_question("什么是 RAG？")
+    def test_rewrite_simple(self, planner):
+        """测试简单改写（fallback）"""
+        result = planner.rewrite_question("什么是 RAG？", rewrite_type="simple")
         assert result.original_question == "什么是 RAG？"
         assert result.rewritten_question is not None
-        assert result.rewrite_type == "standard"
+        assert result.rewrite_type == "simple"
 
-    def test_rewrite_expand(self, planner):
-        """测试扩展改写"""
-        result = planner.rewrite_question("如何学习编程？", rewrite_type="expand")
-        assert "怎样才能" in result.rewritten_question or "如何" in result.rewritten_question
+    def test_rewrite_semantic_fallback(self, planner):
+        """测试语义改写（无 LLM 时降级为简单改写）"""
+        result = planner.rewrite_question("如何学习编程？")
+        # 无 DASHSCOPE_API_KEY 时应降级为 simple
+        assert result.rewrite_type in ["semantic", "simple"]
 
 
 class TestRetrievalSufficiency:

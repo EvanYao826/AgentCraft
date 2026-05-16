@@ -134,29 +134,78 @@ class Planner:
 
         return False, None
 
-    def rewrite_question(self, question: str, rewrite_type: str = "standard") -> RewriteResult:
-        """问题改写"""
-        rewritten = question.strip()
+    def rewrite_question(self, question: str, conversation_context: str = "",
+                         rewrite_type: str = "semantic") -> RewriteResult:
+        """问题改写 - LLM 语义改写，失败时 fallback 到简单替换"""
+        if rewrite_type == "simple":
+            return self._rewrite_simple(question)
 
-        if "？" in question:
-            rewritten = rewritten.replace("？", "?")
+        # 尝试 LLM 语义改写
+        llm = self._get_llm()
+        if llm:
+            try:
+                return self._rewrite_with_llm(question, conversation_context, llm)
+            except Exception as e:
+                logger.warning(f"LLM rewrite failed, falling back to simple: {e}")
 
-        if "!" in question:
-            rewritten = rewritten.replace("!", "。")
+        return self._rewrite_simple(question)
 
-        if rewrite_type == "expand":
-            expanded = question
-            if "如何" in question:
-                expanded = question.replace("如何", "怎样才能")
-            elif "怎么" in question:
-                expanded = question.replace("怎么", "怎样才能")
-            rewritten = expanded
+    def _get_llm(self):
+        """延迟获取 LLM 实例"""
+        if not hasattr(self, '_llm'):
+            try:
+                from core.llm import llm_service
+                self._llm = llm_service.llm
+            except Exception:
+                self._llm = None
+        return self._llm
+
+    def _rewrite_with_llm(self, question: str, conversation_context: str, llm) -> RewriteResult:
+        """LLM 语义改写"""
+        from langchain_core.prompts import PromptTemplate
+        from langchain_core.output_parsers import StrOutputParser
+
+        prompt = PromptTemplate.from_template(
+            """请对以下用户问题进行改写，目标是提升知识库检索的召回率。
+
+改写规则：
+1. 补全省略的主语/宾语
+2. 将口语化表达转为书面化
+3. 将代词替换为具体指代（结合上下文）
+4. 保留原始意图，不要改变问题含义
+
+对话上下文：{conversation_context}
+
+用户问题：{question}
+
+请直接输出改写后的问题，不要解释。"""
+        )
+
+        chain = prompt | llm | StrOutputParser()
+        rewritten = chain.invoke({
+            "question": question,
+            "conversation_context": conversation_context or "无"
+        }).strip()
 
         return RewriteResult(
             original_question=question,
             rewritten_question=rewritten,
-            rewrite_type=rewrite_type,
+            rewrite_type="semantic",
             confidence=0.85
+        )
+
+    def _rewrite_simple(self, question: str) -> RewriteResult:
+        """简单替换（fallback）"""
+        rewritten = question.strip()
+        if "？" in rewritten:
+            rewritten = rewritten.replace("？", "?")
+        if "!" in rewritten:
+            rewritten = rewritten.replace("!", "。")
+        return RewriteResult(
+            original_question=question,
+            rewritten_question=rewritten,
+            rewrite_type="simple",
+            confidence=0.6
         )
 
     def evaluate_retrieval_sufficiency(self, chunks: List[Any], question: str, scores: List[float] = None) -> SufficiencyResult:
