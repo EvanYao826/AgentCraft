@@ -1,6 +1,6 @@
 # AgentCraft 学习指南
 
-> 配合 [README.md](README.md) 使用
+> 配合 [README.md](../ai-knowledge-system/README.md) 使用
 > README 告诉你"这个项目是什么"，本指南告诉你"怎么学、怎么用、怎么讲"
 
 ---
@@ -505,7 +505,7 @@ Day 3: 数据库设计  → sql/init.sql
 
 ## 6. 核心代码逐行解读
 
-### 6.1 Orchestrator — Agent 的大脑
+### 5.1 Orchestrator — Agent 的大脑
 
 ```python
 # agent/orchestrator.py 核心流程（简化版）
@@ -547,7 +547,7 @@ class Orchestrator:
 - 重试策略怎么设计的？→ policies 决定，支持配置
 - 事件发布有什么用？→ 全链路追踪、监控、调试
 
-### 6.2 Planner — Agent 的规划师
+### 5.2 Planner — Agent 的规划师
 
 ```python
 # agent/planner.py 核心逻辑
@@ -576,7 +576,7 @@ class Planner:
 - 意图识别怎么做的？→ LLM + 关键词 Fallback
 - 问题改写有什么用？→ 提高检索准确率
 
-### 6.3 ToolRegistry — 能力管理中心
+### 5.3 ToolRegistry — 能力管理中心
 
 ```python
 # tools/registry.py（简化版）
@@ -597,7 +597,7 @@ class ToolRegistry:  # 单例模式
 - 为什么用单例？→ 全局只需要一个注册器
 - 超时怎么做的？→ ThreadPoolExecutor 强制超时
 
-### 6.4 四层记忆体系
+### 5.4 四层记忆体系
 
 ```
 Layer 1: 短期记忆（AgentState）    → 进程内存，零网络开销
