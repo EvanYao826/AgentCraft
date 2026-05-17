@@ -356,7 +356,7 @@ npm run dev
 ### 默认账号
 
 - 用户端：http://localhost:3000/login （手机验证码注册登录，未配置短信时为模拟模式）
-- 管理端：http://localhost:3000/admin/login （`admin` / `admin123`）
+- 管理端：http://localhost:3000/admin/login（`admin` / `admin123`）
 
 > 项目跑通后，建议按 [学习指南](AgentCraft学习指南.md#5-分阶段学习路线) 的分阶段路线开始学习。
 
@@ -418,3 +418,5 @@ npm run dev
 详细学习说明文档请查看 [AgentCraft 学习指南](AgentCraft学习指南.md)。
 
 **新手入门**：如果你是刚学完基础、没有项目经验的新手，建议先阅读 [新手友好食用指南](新手友好食用指南.md)，从环境搭建到核心概念理解，手把手带你上手。
+
+🤝 欢迎大家在学习过程中遇到问题时，随时提交 [issue](https://github.com/EvanYao826/AgentCraft/issues)，一起交流和改进！
