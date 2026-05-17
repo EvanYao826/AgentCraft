@@ -300,6 +300,8 @@ docker-compose up -d
 # 前端：http://localhost:80
 # Java 后端：http://localhost:8080
 # Python AI 服务：http://localhost:8000
+# 用户端：http://localhost:3000/login
+# 管理端：http://localhost:3000/admin/login
 ```
 
 > 需要安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)。首次启动会自动下载 MySQL、Redis 并构建服务镜像。
@@ -353,8 +355,8 @@ npm run dev
 
 ### 默认账号
 
-- 用户端：手机验证码注册登录（未配置短信时为模拟模式）
-- 管理端：`admin` / `admin123`
+- 用户端：http://localhost:3000/login （手机验证码注册登录，未配置短信时为模拟模式）
+- 管理端：http://localhost:3000/admin/login （`admin` / `admin123`）
 
 > 项目跑通后，建议按 [学习指南](AgentCraft学习指南.md#5-分阶段学习路线) 的分阶段路线开始学习。
 
@@ -414,3 +416,5 @@ npm run dev
 [MIT License](LICENSE) — 可自由用于学习、毕设、简历项目。
 
 详细学习说明文档请查看 [AgentCraft 学习指南](AgentCraft学习指南.md)。
+
+**新手入门**：如果你是刚学完基础、没有项目经验的新手，建议先阅读 [新手友好食用指南](新手友好食用指南.md)，从环境搭建到核心概念理解，手把手带你上手。
