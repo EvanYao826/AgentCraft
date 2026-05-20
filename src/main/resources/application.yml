@@ -60,4 +60,4 @@ jwt:
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:86400000}
 
 upload:
-  dir: ${UPLOAD_DIR:./uploads} # 使用相对路径，兼容所有平台
+  dir: ${UPLOAD_DIR:D:/aiknowledge/uploads} # 使用相对路径，兼容所有平台
